@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Humi</title>
+    <meta name="description" content="A pure HTML example, without dependencies." />
+
+    <link rel="stylesheet" href="pico.min.css" />
+</head>
+
+<body>
+
+    <header class="container">
+        <nav>
+            <ul></ul>
+            <ul>
+                <li><strong>Humi</strong></li>
+            </ul>
+            <ul></ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <article>
+            <header>Main</header>
+            <div role="group">
+                <button disabled>ON</button>
+                <button>OFF</button>
+            </div>
+            <div class="grid">
+                <div role="group">
+                    <input readonly type="text" name="text" value="Humidity:" aria-label="Text" />
+                    <input readonly type="text" name="text" value="41%" aria-label="Text" />
+                </div>
+                <div role="group">
+                    <input readonly type="text" name="text" value="Water container:" aria-label="Text" />
+                    <input readonly type="text" name="text" value="empty" aria-invalid="true" aria-label="Text" />
+                </div>
+            </div>
+        </article>
+        <article>
+            <header>Humidify dependent</header>
+            <div role="group">
+                <button disabled>40%</button>
+                <button>45%</button>
+                <button>50%</button>
+                <button>55%</button>
+            </div>
+            <div role="group">
+                <button>60%</button>
+                <button>65%</button>
+                <button>70%</button>
+                <button>75%</button>
+            </div>
+        </article>
+        <article>
+            <header>Constant humidification</header>
+            <div role="group">
+                <button>Low</button>
+                <button>Medium</button>
+                <button>High</button>
+                <button>Turbo</button>
+            </div>
+        </article>
+    </main>
+</body>
+
+</html>

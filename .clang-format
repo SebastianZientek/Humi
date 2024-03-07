@@ -1,0 +1,24 @@
+---
+BasedOnStyle:  Google
+
+AccessModifierOffset: -4
+PointerAlignment: Right
+AllowShortFunctionsOnASingleLine : false
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: true
+AlwaysBreakAfterDefinitionReturnType: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: true
+BreakBeforeBraces: Allman
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializersBeforeComma: true
+ColumnLimit:     100
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+DerivePointerBinding: false
+IndentCaseLabels : false
+IndentWidth:     4
+PenaltyBreakComment: 60
+TabWidth:        4
+InsertNewlineAtEOF: true
+---

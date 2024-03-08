@@ -2,9 +2,10 @@
 
 #include "Logger.hpp"
 #include "Resources.hpp"
+#include "WebServer/IWebRequest.hpp"
+#include "WebServer/CWebServer.hpp"
 
-
-template <typename WebServerT>
+template <CWebServer WebServerT>
 class WebPage
 {
     constexpr static auto HTML_OK = 200;
@@ -23,26 +24,33 @@ public:
     void start()
     {
         m_server.onGet("/",
-                       [this](auto request)
+                       [this](IWebRequest &request)
                        {
                            Logger::debug("get /");
                            request.send(HTML_OK, "text/html", Resources::getIndexHtml());
                        });
 
         m_server.onGet("/favicon.ico",
-                        [this](auto request)
-                        {
-                            Logger::debug("get /favicon.ico");
-                            request.send(HTML_OK, "image/png", Resources::getFavicon(),
-                                         Resources::getFaviconSize());
-                        });
+                       [this](IWebRequest &request)
+                       {
+                           Logger::debug("get /favicon.ico");
+                           request.send(HTML_OK, "image/png", Resources::getFavicon(),
+                                        Resources::getFaviconSize());
+                       });
 
         m_server.onGet("/pico.min.css",
-                       [this](auto request)
+                       [this](IWebRequest &request)
                        {
                            Logger::debug("get /pico.min.css");
                            request.send(HTML_OK, "text/css", Resources::getPicoCss());
                        });
+
+        m_server.onPost("/configure",
+                        [this](IWebRequest &request, const std::string &body)
+                        {
+                            Logger::debug("get /configure");
+                            request.send(HTML_OK);
+                        });
 
         m_server.start();
     }

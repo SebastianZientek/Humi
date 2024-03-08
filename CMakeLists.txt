@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.27)
 project(UnitTests)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 include(FetchContent)
 FetchContent_Declare(
     CppUTest
@@ -27,8 +31,9 @@ endfunction()
 
 set(INCLS
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/mocks
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests
+    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/mocks
+    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/stubs
 )
 
 set(SRCS 
@@ -36,6 +41,7 @@ set(SRCS
 
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/test_main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestExample.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestWebPage.cpp
 )
 
 

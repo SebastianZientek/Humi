@@ -21,7 +21,7 @@ void setup()
 
     Serial1.println(WiFi.localIP());
 
-    static WebPage<WebServer<WebRequest, EventSrcClient>> webPage;
+    static WebPage<WebServer<EventSrcClient>> webPage;
     webPage.start();
 
     // static WebServer<WebRequest, EventSrcClient> webServer(80);

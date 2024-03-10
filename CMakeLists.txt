@@ -19,11 +19,18 @@ FetchContent_MakeAvailable(CppUTest)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG        8.1.1
+)
+FetchContent_MakeAvailable(fmt)
+
 function(buildTests suiteName srcs incls)
     add_executable(${suiteName} ${srcs} ${tests})
     target_include_directories(${suiteName} PRIVATE ${incls})
     target_compile_options(${suiteName} PUBLIC -fsanitize=address -O0 -g)
-    target_link_libraries(${suiteName} PRIVATE CppUTest::CppUTest CppUTest::CppUTestExt nlohmann_json::nlohmann_json)
+    target_link_libraries(${suiteName} PRIVATE CppUTest::CppUTest CppUTest::CppUTestExt nlohmann_json::nlohmann_json fmt::fmt)
     target_compile_features(${suiteName} PRIVATE cxx_std_17)
     target_compile_definitions(${suiteName} PRIVATE UNIT_TESTS)
     target_link_options(${suiteName} PRIVATE -fsanitize=address)
@@ -37,7 +44,7 @@ set(INCLS
 )
 
 set(SRCS 
-    # ${CMAKE_CURRENT_SOURCE_DIR}/src/host/ConfStorage.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/Resources.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/test_main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestExample.cpp

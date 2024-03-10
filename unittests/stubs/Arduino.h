@@ -24,5 +24,5 @@ public:
     }
 };
 
-extern SerialStub Serial;  // NOLINT
-extern SerialStub Serial1;  // NOLINT
+SerialStub Serial;  // NOLINT
+SerialStub Serial1;  // NOLINT

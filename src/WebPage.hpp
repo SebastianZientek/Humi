@@ -1,11 +1,12 @@
 #pragma once
 
+#include <memory>
+
+#include "CResources.hpp"
 #include "Logger.hpp"
-#include "Resources.hpp"
-#include "WebServer/IWebRequest.hpp"
 #include "WebServer/CWebServer.hpp"
 
-template <CWebServer WebServerT>
+template <CWebServer WebServer, CResources Resources>
 class WebPage
 {
     constexpr static auto HTML_OK = 200;
@@ -16,45 +17,46 @@ class WebPage
     constexpr static auto RECONNECT_TIMEOUT = 10000;
 
 public:
-    WebPage()
-        : m_server(80)
+    explicit WebPage(const std::shared_ptr<WebServer> &webServer)
+        : m_server(webServer)
     {
     }
 
     void start()
     {
-        m_server.onGet("/",
-                       [this](IWebRequest &request)
-                       {
-                           Logger::debug("get /");
-                           request.send(HTML_OK, "text/html", Resources::getIndexHtml());
-                       });
-
-        m_server.onGet("/favicon.ico",
-                       [this](IWebRequest &request)
-                       {
-                           Logger::debug("get /favicon.ico");
-                           request.send(HTML_OK, "image/png", Resources::getFavicon(),
-                                        Resources::getFaviconSize());
-                       });
-
-        m_server.onGet("/pico.min.css",
-                       [this](IWebRequest &request)
-                       {
-                           Logger::debug("get /pico.min.css");
-                           request.send(HTML_OK, "text/css", Resources::getPicoCss());
-                       });
-
-        m_server.onPost("/configure",
-                        [this](IWebRequest &request, const std::string &body)
+        m_server->onGet("/",
+                        [this](WebServer::Request &request)
                         {
-                            Logger::debug("get /configure");
-                            request.send(HTML_OK);
+                            Logger::debug("get /");
+                            request.send(HTML_OK, "text/html", Resources::getIndexHtml());
                         });
 
-        m_server.start();
+        m_server->onGet("/favicon.ico",
+                        [this](WebServer::Request &request)
+                        {
+                            Logger::debug("get /favicon.ico");
+                            request.send(HTML_OK, "image/png", Resources::getFavicon(),
+                                         Resources::getFaviconSize());
+                        });
+
+        m_server->onGet("/pico.min.css",
+                        [this](WebServer::Request &request)
+                        {
+                            Logger::debug("get /pico.min.css");
+                            request.send(HTML_OK, "text/css", Resources::getPicoCss());
+                        });
+
+        m_server->onPost("/configure",
+                         [this](WebServer::Request &request, const std::string &body)
+                         {
+                             Logger::debug("get /configure");
+                             request.send(HTML_OK);
+                         });
+
+        m_server->start();
     }
 
 private:
-    WebServerT m_server;
+    constexpr static auto port = 80;
+    std::shared_ptr<WebServer> m_server;
 };

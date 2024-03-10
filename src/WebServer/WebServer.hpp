@@ -4,14 +4,20 @@
 
 #include <string>
 
-#include "IEventSrcClient.hpp"
+#include "CEventSrcClient.hpp"
+#include "CWebRequest.hpp"
 #include "CWebServer.hpp"
-#include "WebRequest.hpp"
 
-template <IEventSrcClient EventSrcClientT>
+template <CWebRequest RequestType, CEventSrcClient EventSrcClientType>
 class WebServer
 {
 public:
+    using Request = RequestType;
+    using EventSrcClient = EventSrcClientType;
+
+    using RequestClbk = std::function<void(Request &)>;
+    using RequestClbkWithBody = std::function<void(Request &, std::string)>;
+
     WebServer(uint16_t port)
         : m_server(port)
     {
@@ -31,27 +37,27 @@ public:
         m_server.end();
     }
 
-    void onGet(const std::string &url, const WebRequestClbk &clbk)
+    void onGet(const std::string &url, const RequestClbk &clbk)
     {
         m_server.on(url.c_str(), HTTP_GET,
                     [clbk](AsyncWebServerRequest *request)
                     {
-                        auto req = WebRequest(request);
+                        auto req = Request(request);
                         clbk(req);
                     });
     }
 
-    void onPost(const std::string &url, const WebRequestClbk &clbk)
+    void onPost(const std::string &url, const RequestClbk &clbk)
     {
         m_server.on(url.c_str(), HTTP_POST,
                     [clbk](AsyncWebServerRequest *request)
                     {
-                        auto req = WebRequest(request);
+                        auto req = Request(request);
                         clbk(req);
                     });
     }
 
-    void onPost(const std::string &url, const WebRequestWithBodyClbk &clbk)
+    void onPost(const std::string &url, const RequestClbkWithBody &clbk)
     {
         m_server.on(
             url.c_str(), HTTP_POST, [](AsyncWebServerRequest *request) {},
@@ -60,24 +66,26 @@ public:
             [clbk](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index,
                    size_t total)
             {
-                auto req = WebRequest(request);
+                auto req = Request(request);
                 auto body = std::string(data, data + len);
                 clbk(req, body);
             });
     }
 
-    // void setupEventsSource(const std::string &src, auto onConnectClbk)
-    // {
-    //     m_events = std::make_unique<AsyncEventSource>(src.c_str());
-    //     m_events->onConnect(
-    //         [onConnectClbk](AsyncEventSourceClient *client)
-    //         {
-    //             auto eventSrcClient = EventSrcClientT(client);
-    //             onConnectClbk(eventSrcClient);
-    //         });
+    void setupEventsSource(const std::string &src,
+                           const std::function<void(EventSrcClient &)> &onConnectClbk)
+    {
+        m_events = std::make_unique<AsyncEventSource>(src.c_str());
+        m_events->onConnect(
+            [onConnectClbk](AsyncEventSourceClient *client)
+            {
+                auto eventSrcClient = EventSrcClient(client);
+                onConnectClbk(eventSrcClient);
+            });
 
-    //     m_server.addHandler(m_events.get());
-    // }
+        m_server.addHandler(m_events.get());
+    }
+
     void sendEvent(const char *message,
                    const char *event = nullptr,
                    uint32_t identifier = 0,

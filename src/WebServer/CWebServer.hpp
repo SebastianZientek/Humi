@@ -1,37 +1,27 @@
 #pragma once
 
+#include <concepts>
 #include <cstdint>
 #include <functional>
 #include <string>
-#include <concepts>
 
-#include "IWebRequest.hpp"
-
-using WebRequestClbk = std::function<void(IWebRequest &)>;
-using WebRequestWithBodyClbk = std::function<void(IWebRequest &, const std::string &body)>;
-// using EventClbk = std::function<void(IEventSrcClient &)>;
-
-template <typename T>
-concept CWebServer = requires(T server, std::string url, WebRequestClbk clbk, WebRequestWithBodyClbk clbkWithBody) {
-    {
-        server.start()
-    } -> std::same_as<void>;
-    {
-        server.stop()
-    } -> std::same_as<void>;
-    {
-        server.onGet(url, clbk)
-    } -> std::same_as<void>;
-    {
-        server.onPost(url, clbk)
-    } -> std::same_as<void>;
-    {
-        server.onPost(url, clbkWithBody)
-    } -> std::same_as<void>;
-    // {
-    //     server.setupEventsSource(url, clbk)
-    // } -> std::same_as<void>;
-    // {
-    //     server.sendEvent("message")
-    // } -> std::same_as<void>;
+template <typename Srv>
+concept CWebServer = requires(
+    Srv srv, std::string url,
+    std::function<void(typename Srv::Request)> reqClbk,
+    std::function<void(typename Srv::Request, const std::string &body)>
+        reqClbkWithBody,
+    std::function<void(typename Srv::EventSrcClient &)> onConnectClbk) {
+  { srv.start() } -> std::same_as<void>;
+  { srv.stop() } -> std::same_as<void>;
+  { srv.onGet(url, reqClbk) } -> std::same_as<void>;
+  { srv.onPost(url, reqClbk) } -> std::same_as<void>;
+  { srv.onPost(url, reqClbkWithBody) } -> std::same_as<void>;
+  {
+    srv.setupEventsSource(std::declval<const std::string &>(), onConnectClbk)
+  } -> std::same_as<void>;
+  {
+    srv.sendEvent(std::declval<const char *>(), std::declval<const char *>(),
+                  std::declval<uint32_t>(), std::declval<uint32_t>())
+  } -> std::same_as<void>;
 };

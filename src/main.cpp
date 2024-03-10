@@ -1,38 +1,37 @@
 #include <Arduino.h>
 
+#include "Logger.hpp"
+#include "Resources.hpp"
 #include "Web.hpp"
+#include "WebPage.hpp"
 #include "WebServer/EventSrcClient.hpp"
 #include "WebServer/WebRequest.hpp"
 #include "WebServer/WebServer.hpp"
 #include "WifiConfigurator.hpp"
 
-#include "Logger.hpp"
+using WebSrv = WebServer<WebRequest, EventSrcClient>;
 
-#include "WebPage.hpp"
+namespace
+{
+std::shared_ptr<WebSrv> webSrv{std::make_shared<WebSrv>(80)};
+WebPage<WebSrv, Resources> webPage(webSrv);
+}  // namespace
 
 void setup()
 {
     pinMode(LED_BUILTIN, OUTPUT);
 
-    Serial.begin(9600); 
+    Serial.begin(9600);
     Logger::init();
 
     connectToWifi();
+    Logger::info("Local IP {}", WiFi.localIP().toString().c_str());
 
-    Serial1.println(WiFi.localIP());
-
-    static WebPage<WebServer<EventSrcClient>> webPage;
     webPage.start();
-
-    // static WebServer<WebRequest, EventSrcClient> webServer(80);
-
-    // webServer.onGet("/", [](auto request) { request.send(400, "text/html", "<h1>test</h1>"); });
-    // webServer.start();
-
 }
 
 void loop()
 {
-    Logger::debug("Test");
-    delay(1000);
+    Logger::debug("Alive");
+    delay(5000);
 }

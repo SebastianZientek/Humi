@@ -12,7 +12,7 @@ public:
   void start() {
     m_asyncWebServer.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
       auto params = request->params();
-      for (int i = 0; i < params; i++) {
+      for (size_t i = 0; i < params; i++) {
         AsyncWebParameter *param = request->getParam(i);
         if (param->name() == "light") {
           if (param->value() == "on") {

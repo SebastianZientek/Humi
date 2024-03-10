@@ -1,7 +1,7 @@
 #include <concepts>
 
 template<typename T>
-concept ISerial = requires(T device) {
+concept CSerial = requires(T device) {
     // Check for different variants of read functions
     // { device.read() } -> std::convertible_to<int>;
     // { device.read(reinterpret_cast<char*>(nullptr), size_t{0}) } -> std::convertible_to<size_t>;

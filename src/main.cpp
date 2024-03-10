@@ -8,6 +8,7 @@
 #include "WebServer/WebRequest.hpp"
 #include "WebServer/WebServer.hpp"
 #include "WifiConfigurator.hpp"
+#include "Messages.hpp"
 
 using WebSrv = WebServer<WebRequest, EventSrcClient>;
 

@@ -52,48 +52,12 @@ public:
                             request.send(HTML_OK, "text/css", Resources::getPicoCss());
                         });
 
-        m_server->onPost(
-            "/set",
-            [this](WebServer::Request &request, const std::string &body)
-            {                Logger::debug("get /set {}", body);
-
-                auto message = nlohmann::json::parse(body, nullptr, false);
-                if (message.is_discarded())
-                {
-                    Logger::error("Can't parse json data, {}", body);
-                    request.send(HTML_BAD_REQ);
-                    return;
-                }
-
-                if (!message.contains("type") || !message.contains("value"))
-                {
-                    Logger::error("Can't parse json data, {}", body);
-                    request.send(HTML_BAD_REQ);
-                    return;
-                }
-
-                if (!message["type"].is_string() || !message["value"].is_number_unsigned())
-                {
-                    Logger::error("Can't parse json data, {}", body);
-                    request.send(HTML_BAD_REQ);
-                    return;
-                }
-
-                auto msgType = message["type"];
-                auto value = message["value"].get<unsigned>();
-
-                auto maxValue = std::numeric_limits<uint8_t>::max();
-                if (value > maxValue)
-                {
-                    Logger::error("Can't parse json data, {}", body);
-                    request.send(HTML_BAD_REQ);
-                    return;
-                }
-
-                m_onConfigureClbk(msgType, value);
-
-                request.send(HTML_OK);
-            });
+        m_server->onPost("/set",
+                         [this](WebServer::Request &request, const std::string &body)
+                         {
+                             Logger::debug("get /set {}", body);
+                             onSet(request, body);
+                         });
 
         m_server->start();
     }
@@ -102,4 +66,44 @@ private:
     constexpr static auto port = 80;
     std::shared_ptr<WebServer> m_server;
     ConfigureClbk m_onConfigureClbk;
+
+    void onSet(WebServer::Request &request, const std::string &body)
+    {
+        auto message = nlohmann::json::parse(body, nullptr, false);
+        if (message.is_discarded())
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        if (!message.contains("type") || !message.contains("value"))
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        if (!message["type"].is_string() || !message["value"].is_number_unsigned())
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        auto msgType = message["type"];
+        auto value = message["value"].get<unsigned>();
+
+        auto maxValue = std::numeric_limits<uint8_t>::max();
+        if (value > maxValue)
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        m_onConfigureClbk(msgType, value);
+
+        request.send(HTML_OK);
+    }
 };

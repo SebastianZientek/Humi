@@ -1,6 +1,8 @@
 #pragma once
 
-#include <Arduino.h>
+// #include <Arduino.h>
+
+#include <functional>
 
 #undef B1
 #include <fmt/core.h>
@@ -8,6 +10,8 @@
 class Logger
 {
 public:
+    using PrinterFunc = std::function<void(const std::string &)>;
+
     enum class LogLevel
     {
         DEBUG,
@@ -16,9 +20,12 @@ public:
         ERROR
     };
 
-    static void init(LogLevel initialLogLevel = LogLevel::DEBUG)
+    static void init(
+        PrinterFunc printerFunc = [](const std::string &) {},
+        LogLevel initialLogLevel = LogLevel::DEBUG)
     {
-        Serial1.begin(9600);
+        // Serial1.begin(9600);
+        printer = printerFunc;
         setLogLevel(initialLogLevel);
     }
 
@@ -53,6 +60,7 @@ public:
 
 private:
     static LogLevel currentLogLevel;
+    static PrinterFunc printer;
 
     template <typename... Args>
     static void log(LogLevel level,
@@ -64,9 +72,7 @@ private:
         {
             std::string message
                 = fmt::format("{} {}", levelStr, fmt::format(format, std::forward<Args>(args)...));
-            Serial1.println(message.c_str());
+            printer(message);
         }
     }
 };
-
-Logger::LogLevel Logger::currentLogLevel;

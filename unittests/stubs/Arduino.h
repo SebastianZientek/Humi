@@ -1,11 +1,12 @@
 #pragma once
 
+#include <cstdint>
+
 class SerialStub
 {
 public:
-    void begin(size_t)
+    void begin(std::size_t)
     {
-
     }
 
     template <typename... Ts>
@@ -24,5 +25,5 @@ public:
     }
 };
 
-SerialStub Serial;  // NOLINT
+SerialStub Serial;   // NOLINT
 SerialStub Serial1;  // NOLINT

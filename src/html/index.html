@@ -9,6 +9,40 @@
     <meta name="description" content="A pure HTML example, without dependencies." />
 
     <link rel="stylesheet" href="pico.min.css" />
+    <script>
+        function sendMessage(messageType, value) {
+            async function send(message) {
+                try {
+                    let results = await fetch("/set", {
+                        method: "POST",
+                        headers: { "Content-type": "application/json" },
+                        body: message
+                    });
+
+                    if (results.status != 200) {
+                        showInfoModal("Communication error");
+                    }
+                }
+                catch (error) {
+                    showInfoModal("Communication error");
+                }
+            }
+
+            let message = {
+                "type": messageType,
+                "value": value
+            };
+
+            send(JSON.stringify(message));
+        }
+
+
+        function closeModal(modalName) {
+            const dialog = document.getElementById(modalName);
+            dialog.close();
+        }
+
+    </script>
 </head>
 
 <body>
@@ -28,7 +62,7 @@
             <header>Main</header>
             <div role="group">
                 <button disabled>ON</button>
-                <button>OFF</button>
+                <button onclick="sendMessage('power', 0)">OFF</button>
             </div>
             <div class="grid">
                 <div role="group">
@@ -66,6 +100,17 @@
             </div>
         </article>
     </main>
+    <dialog id="infoModal">
+        <article>
+            <header>
+                <h3>Sending data</h3>
+            </header>
+            <p id="infoModalText"></p>
+            <footer>
+                <button autofocus id="btnConfirmSensorRemoval" onclick="closeModal('infoModal')">Ok</button>
+            </footer>
+        </article>
+    </dialog>
 </body>
 
 </html>

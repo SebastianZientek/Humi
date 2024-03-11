@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "Logger.hpp"
+#include "Messages.hpp"
 #include "Resources.hpp"
 #include "Web.hpp"
 #include "WebPage.hpp"
@@ -8,14 +9,14 @@
 #include "WebServer/WebRequest.hpp"
 #include "WebServer/WebServer.hpp"
 #include "WifiConfigurator.hpp"
-#include "Messages.hpp"
 
 using WebSrv = WebServer<WebRequest, EventSrcClient>;
+using MainWebPage = WebPage<WebSrv, Resources>;
 
 namespace
 {
 std::shared_ptr<WebSrv> webSrv{std::make_shared<WebSrv>(80)};
-WebPage<WebSrv, Resources> webPage(webSrv);
+MainWebPage webPage(webSrv);
 }  // namespace
 
 void setup()
@@ -28,7 +29,7 @@ void setup()
     connectToWifi();
     Logger::info("Local IP {}", WiFi.localIP().toString().c_str());
 
-    webPage.start();
+    webPage.start([](const std::string &msgType, uint8_t value) {});
 }
 
 void loop()

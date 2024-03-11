@@ -7,7 +7,7 @@
 
 #include "Arduino.h"
 
-void connectToWifi()
+void WifiConfigurator::connectToWifi()
 {
     static WiFiManager wifiManager;
     if (!wifiManager.autoConnect("YourWiFiAP"))

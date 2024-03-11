@@ -28,6 +28,9 @@
                 }
             }
 
+            var clickedButton = event.target;
+            clickedButton.disabled = true;
+
             let message = {
                 "type": messageType,
                 "value": value
@@ -61,7 +64,7 @@
         <article>
             <header>Main</header>
             <div role="group">
-                <button disabled>ON</button>
+                <button onclick="sendMessage('power', 1)">ON</button>
                 <button onclick="sendMessage('power', 0)">OFF</button>
             </div>
             <div class="grid">

@@ -44,8 +44,8 @@ set(INCLS
 )
 
 set(SRCS 
-    # ${CMAKE_CURRENT_SOURCE_DIR}/src/Resources.cpp
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.cpp
+    
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/test_main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestExample.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestWebPage.cpp

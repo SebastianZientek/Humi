@@ -11,9 +11,9 @@ void App::init()
     Serial1.begin(9600);
     Logger::init([](const std::string &txt) { Serial1.println(txt.c_str()); });
 
-    connectToWifi();
+    WifiConfigurator::connectToWifi();
     Logger::info("Local IP {}", WiFi.localIP().toString().c_str());
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    m_webPage.start([](const std::string &msgType, uint8_t value) {});
 }
 
 void App::update()

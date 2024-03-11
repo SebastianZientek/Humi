@@ -1,7 +1,5 @@
 #pragma once
 
-// #include <Arduino.h>
-
 #include <functional>
 
 #undef B1
@@ -24,7 +22,6 @@ public:
         PrinterFunc printerFunc = [](const std::string &) {},
         LogLevel initialLogLevel = LogLevel::DEBUG)
     {
-        // Serial1.begin(9600);
         printer = printerFunc;
         setLogLevel(initialLogLevel);
     }

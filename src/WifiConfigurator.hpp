@@ -1,3 +1,7 @@
 #pragma once
 
-void connectToWifi();
+class WifiConfigurator
+{
+public:
+    static void connectToWifi();
+};

@@ -28,10 +28,14 @@ TEST_GROUP(TestWebPage)  // NOLINT
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/");
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/favicon.ico");
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/pico.min.css");
-        mock("WebServerMock").expectOneCall("onPost").withParameter("url", "/configure");
+        mock("WebServerMock").expectOneCall("onPost").withParameter("url", "/set");
     }
 
+    constexpr static auto HTML_OK = 200;
+    constexpr static auto HTML_BAD_REQ = 400;
+
     std::shared_ptr<WebServer> webServerMock;
+    
 };
 // clang-format on
 
@@ -40,12 +44,14 @@ TEST(TestWebPage, ShouldGetIndexHtml)  // NOLINT
     WebPage<WebServer, ResourcesMock> webPage(webServerMock);
 
     mockOnGetAndOnPostCalls();
-
     mock("WebServerMock").expectOneCall("start");
-    webPage.start();
-
     mock("ResourcesMock").expectOneCall("getIndexHtml");
-    mock("WebRequestMock").expectOneCall("send").withParameter("code", 200).ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_OK)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
 
     WebRequestMock webRequest;
     webServerMock->callGet("/", webRequest);
@@ -56,29 +62,143 @@ TEST(TestWebPage, ShouldGetPicoCss)  // NOLINT
     WebPage<WebServer, ResourcesMock> webPage(webServerMock);
 
     mockOnGetAndOnPostCalls();
-
     mock("WebServerMock").expectOneCall("start");
-    webPage.start();
-
     mock("ResourcesMock").expectOneCall("getPicoCss");
-    mock("WebRequestMock").expectOneCall("send").withParameter("code", 200).ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_OK)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
 
     WebRequestMock webRequest;
     webServerMock->callGet("/pico.min.css", webRequest);
 }
 
-TEST(TestWebPage, NotImplementedYet)  // NOLINT
+TEST(TestWebPage, HandleGarbageDataThatIsNotJson)  // NOLINT
 {
-    // WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
 
-    // mockOnGetAndOnPostCalls();
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
 
-    // mock("WebServerMock").expectOneCall("start");
-    // webPage.start();
+    webPage.start([](const std::string &msgType, uint8_t value) {});
 
-    // mock("ResourcesMock").expectOneCall("getPicoCss");
-    // mock("WebRequestMock").expectOneCall("send").withParameter("code", 200).ignoreOtherParameters();
+    WebRequestMock webRequest;
+    const auto *garbage = "blahblahblah";
+    webServerMock->callPostWithBody("/set", webRequest, garbage);
+}
 
-    // WebRequestMock webRequest;
-    // webServerMock->callPostWithBody("/configure", webRequest, "");
+TEST(TestWebPage, HandleCorrectJsonContainingWrongKeys)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
+
+    WebRequestMock webRequest;
+    const auto *wrongData = R"({"wrong": "data"})";
+    webServerMock->callPostWithBody("/set", webRequest, wrongData);
+}
+
+TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButStringInsteadOfUInt)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
+
+    WebRequestMock webRequest;
+    const auto *wrongData = R"({"type":"some_type","value": "str_instead_of_uint"})";
+    webServerMock->callPostWithBody("/set", webRequest, wrongData);
+}
+
+TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButIntInsteadOfString)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
+
+    const auto *wrongData = R"({"type": 123,"value": 123})";
+    WebRequestMock webRequest;
+    webServerMock->callPostWithBody("/set", webRequest, wrongData);
+}
+
+TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButValueIsNegative)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
+
+    const auto *wrongData = R"({"type": "some_type","value": -123})";
+    WebRequestMock webRequest;
+    webServerMock->callPostWithBody("/set", webRequest, wrongData);
+}
+
+TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButValueIsTooBig)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
+
+    WebRequestMock webRequest;
+    const auto *wrongData = R"({"type": "some_type","value": 1000})";
+    webServerMock->callPostWithBody("/set", webRequest, wrongData);
+}
+
+TEST(TestWebPage, HandleCorrectMessage)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_OK)
+        .ignoreOtherParameters();
+    mock("Lambda").expectOneCall("callback");
+
+    webPage.start([](const std::string &msgType, uint8_t value)
+                  { mock("Lambda").actualCall("callback"); });
+
+    WebRequestMock webRequest;
+    const auto *wrongData = R"({"type": "some_type","value": 4})";
+    webServerMock->callPostWithBody("/set", webRequest, wrongData);
 }

@@ -26,6 +26,7 @@ TEST_GROUP(TestWebPage)  // NOLINT
     void mockOnGetAndOnPostCalls()
     {
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/");
+        mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/main.js");
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/favicon.ico");
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/pico.min.css");
         mock("WebServerMock").expectOneCall("onPost").withParameter("url", "/set");
@@ -55,6 +56,24 @@ TEST(TestWebPage, ShouldGetIndexHtml)  // NOLINT
 
     WebRequestMock webRequest;
     webServerMock->callGet("/", webRequest);
+}
+
+TEST(TestWebPage, ShouldGetMainJs)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("ResourcesMock").expectOneCall("getMainJs");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_OK)
+        .ignoreOtherParameters();
+
+    webPage.start([](const std::string &msgType, uint8_t value) {});
+
+    WebRequestMock webRequest;
+    webServerMock->callGet("/main.js", webRequest);
 }
 
 TEST(TestWebPage, ShouldGetPicoCss)  // NOLINT

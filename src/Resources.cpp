@@ -5,17 +5,23 @@
 #include <incbin.h>
 
 INCTXT(IndexHtml, "src/html/index.html");
+INCTXT(MainJs, "src/html/main.js");
 INCTXT(PicoCss, "src/html/pico.min.css");
 INCBIN(Favicon, "src/html/fav.png");
 
 const char *Resources::getIndexHtml()
 {
-    return (char*)gIndexHtmlData;
+    return (char *)gIndexHtmlData;
+}
+
+const char *Resources::getMainJs()
+{
+    return (char *)gMainJsData;
 }
 
 const char *Resources::getPicoCss()
 {
-    return (char*)gPicoCssData;
+    return (char *)gPicoCssData;
 }
 
 const unsigned char *Resources::getFavicon()

@@ -9,47 +9,15 @@
     <meta name="description" content="A pure HTML example, without dependencies." />
 
     <link rel="stylesheet" href="pico.min.css" />
-    <script>
-        function sendMessage(messageType, value) {
-            async function send(message) {
-                try {
-                    let results = await fetch("/set", {
-                        method: "POST",
-                        headers: { "Content-type": "application/json" },
-                        body: message
-                    });
-
-                    if (results.status != 200) {
-                        showInfoModal("Communication error");
-                    }
-                }
-                catch (error) {
-                    showInfoModal("Communication error");
-                }
-            }
-
-            var clickedButton = event.target;
-            clickedButton.disabled = true;
-
-            let message = {
-                "type": messageType,
-                "value": value
-            };
-
-            send(JSON.stringify(message));
+    <style>
+        button {
+            padding: 10px;
         }
-
-
-        function closeModal(modalName) {
-            const dialog = document.getElementById(modalName);
-            dialog.close();
-        }
-
-    </script>
+    </style>
+    <script type="text/javascript" src="main.js"> </script>
 </head>
 
 <body>
-
     <header class="container">
         <nav>
             <ul></ul>
@@ -63,9 +31,9 @@
     <main class="container">
         <article>
             <header>Main</header>
-            <div role="group">
-                <button onclick="sendMessage('power', 1)">ON</button>
-                <button onclick="sendMessage('power', 0)">OFF</button>
+            <div role="group" id="power">
+                <button onclick="sendMessage('power', 'power', 1)" disabled>ON</button>
+                <button onclick="sendMessage('power', 'power', 0)">OFF</button>
             </div>
             <div class="grid">
                 <div role="group">
@@ -78,28 +46,62 @@
                 </div>
             </div>
         </article>
-        <article>
-            <header>Humidify dependent</header>
+        <article id="humidification">
+            <header>Humidification</header>
             <div role="group">
-                <button disabled>40%</button>
-                <button>45%</button>
-                <button>50%</button>
-                <button>55%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 1)">40%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 2)">45%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 3)">50%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 4)">55%</button>
             </div>
             <div role="group">
-                <button>60%</button>
-                <button>65%</button>
-                <button>70%</button>
-                <button>75%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 5)">60%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 6)">65%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 7)">70%</button>
+                <button onclick="sendMessage('humidification', 'humidification_level', 8)">75%</button>
+            </div>
+            <hr>
+            <br>
+            <div role="group">
+                <button onclick="sendMessage('humidification', 'humidification_power', 0)">Low</button>
+                <button onclick="sendMessage('humidification', 'humidification_power', 1)" disabled>Medium</button>
+                <button onclick="sendMessage('humidification', 'humidification_power', 2)">High</button>
+                <button onclick="sendMessage('humidification', 'humidification_power', 3)">Turbo</button>
+            </div>
+            <div role="group">
+                <button onclick="sendMessage('humidification', 'auto_mode', 0)">Auto: OFF</button>
+                <button onclick="sendMessage('humidification', 'auto_mode', 1)">Auto: ON</button>
             </div>
         </article>
+        <article id="timer">
+            <header>Timer</header>
+            <select name="select" aria-label="Select" required onchange="timerChanged(this)">
+                <option>Off</option>
+                <option>1H</option>
+                <option>2H</option>
+                <option>3H</option>
+                <option>4H</option>
+                <option>5H</option>
+                <option>6H</option>
+                <option>7H</option>
+                <option>8H</option>
+                <option>9H</option>
+                <option>10H</option>
+                <option>11H</option>
+                <option>12H</option>
+            </select>
+        </article>
         <article>
-            <header>Constant humidification</header>
-            <div role="group">
-                <button>Low</button>
-                <button>Medium</button>
-                <button>High</button>
-                <button>Turbo</button>
+            <header>Night mode and light</header>
+            <div role="group" id="night_mode">
+                <button onclick="sendMessage('night_mode', 'night_mode', 0)" disabled>Night mode: OFF</button>
+                <button onclick="sendMessage('night_mode', 'night_mode', 1)">Night mode: ON</button>
+            </div>
+            <div role="group" id="light">
+                <button onclick="sendMessage('light', 'light', 0)">Off</button>
+                <button onclick="sendMessage('light', 'light', 1)">Dimmed</button>
+                <button onclick="sendMessage('light', 'light', 2)">Normal</button>
+                <button onclick="sendMessage('light', 'light', 3)">Bright</button>
             </div>
         </article>
     </main>

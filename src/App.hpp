@@ -1,7 +1,11 @@
 #pragma once
 
+#include <Arduino.h>
+
 #include <memory>
 
+#include "HumidifierUart.hpp"
+#include "MessagesSerializer.hpp"
 #include "Resources.hpp"
 #include "WebPage.hpp"
 #include "WebServer/EventSrcClient.hpp"
@@ -20,4 +24,5 @@ private:
 
     std::shared_ptr<WebSrv> m_webSrv{std::make_shared<WebSrv>(80)};
     MainWebPage m_webPage{m_webSrv};
+    HumidifierUart<decltype(Serial), MessagesSerializer> m_humidifierUart{&Serial};
 };

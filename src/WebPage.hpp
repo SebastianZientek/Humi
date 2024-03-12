@@ -19,7 +19,7 @@ class WebPage
     constexpr static auto RECONNECT_TIMEOUT = 10000;
 
 public:
-    using ConfigureClbk = std::function<void(const std::string &msgType, uint8_t value)>;
+    using ConfigureClbk = std::function<bool(const std::string &msgType, uint8_t value)>;
 
     explicit WebPage(const std::shared_ptr<WebServer> &webServer)
         : m_server(webServer)
@@ -109,7 +109,12 @@ private:
             return;
         }
 
-        m_onConfigureClbk(msgType, value);
+        auto sended = m_onConfigureClbk(msgType, value);
+        if (!sended)
+        {
+            request.send(HTML_BAD_REQ);
+            return;
+        }
 
         request.send(HTML_OK);
     }

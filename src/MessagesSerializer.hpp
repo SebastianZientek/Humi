@@ -1,15 +1,18 @@
+#pragma once
+
 #include <cstdint>
 #include <map>
 #include <numeric>
 #include <vector>
+#include <string>
 
 // Message from humidifier to wifi module: preamble (85, 170) + message content + value + control
 // sum (sum of values % 256)
 
-class MsgWifiToHumidifier
+class MessagesSerializer
 {
 public:
-    MsgWifiToHumidifier(const std::string &type, uint8_t value)
+    MessagesSerializer(const std::string &type, uint8_t value)
     {
         if (m_msgContents.find(type) != m_msgContents.end())
         {

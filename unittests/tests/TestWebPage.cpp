@@ -52,7 +52,7 @@ TEST(TestWebPage, ShouldGetIndexHtml)  // NOLINT
         .withParameter("code", HTML_OK)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     WebRequestMock webRequest;
     webServerMock->callGet("/", webRequest);
@@ -70,7 +70,7 @@ TEST(TestWebPage, ShouldGetMainJs)  // NOLINT
         .withParameter("code", HTML_OK)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     WebRequestMock webRequest;
     webServerMock->callGet("/main.js", webRequest);
@@ -88,7 +88,7 @@ TEST(TestWebPage, ShouldGetPicoCss)  // NOLINT
         .withParameter("code", HTML_OK)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     WebRequestMock webRequest;
     webServerMock->callGet("/pico.min.css", webRequest);
@@ -105,7 +105,7 @@ TEST(TestWebPage, HandleGarbageDataThatIsNotJson)  // NOLINT
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     WebRequestMock webRequest;
     const auto *garbage = "blahblahblah";
@@ -123,7 +123,7 @@ TEST(TestWebPage, HandleCorrectJsonContainingWrongKeys)  // NOLINT
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"wrong": "data"})";
@@ -141,7 +141,7 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButStringInsteadOfUInt) 
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type":"some_type","value": "str_instead_of_uint"})";
@@ -159,7 +159,7 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButIntInsteadOfString)  
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     const auto *wrongData = R"({"type": 123,"value": 123})";
     WebRequestMock webRequest;
@@ -177,7 +177,7 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButValueIsNegative)  // 
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     const auto *wrongData = R"({"type": "some_type","value": -123})";
     WebRequestMock webRequest;
@@ -195,12 +195,37 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButValueIsTooBig)  // NO
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) {});
+    webPage.start([](const std::string &msgType, uint8_t value) { return true; });
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type": "some_type","value": 1000})";
     webServerMock->callPostWithBody("/set", webRequest, wrongData);
 }
+
+TEST(TestWebPage, HandleCorrectJsonWithIncorrectMessageType)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+    mock("Lambda").expectOneCall("callback");
+
+    webPage.start(
+        [](const std::string &msgType, uint8_t value)
+        {
+            mock("Lambda").actualCall("callback");
+            return false;
+        });
+
+    WebRequestMock webRequest;
+    const auto *wrongData = R"({"type": "some_type","value": 4})";
+    webServerMock->callPostWithBody("/set", webRequest, wrongData);
+}
+
 
 TEST(TestWebPage, HandleCorrectMessage)  // NOLINT
 {
@@ -214,8 +239,12 @@ TEST(TestWebPage, HandleCorrectMessage)  // NOLINT
         .ignoreOtherParameters();
     mock("Lambda").expectOneCall("callback");
 
-    webPage.start([](const std::string &msgType, uint8_t value)
-                  { mock("Lambda").actualCall("callback"); });
+    webPage.start(
+        [](const std::string &msgType, uint8_t value)
+        {
+            mock("Lambda").actualCall("callback");
+            return true;
+        });
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type": "some_type","value": 4})";

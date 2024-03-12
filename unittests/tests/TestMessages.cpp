@@ -1,7 +1,7 @@
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
 
-#include "Messages.hpp"
+#include "MessagesSerializer.hpp"
 
 // clang-format off
 TEST_GROUP(TestMessages)  // NOLINT
@@ -17,7 +17,7 @@ TEST_GROUP(TestMessages)  // NOLINT
 
 TEST(TestMessages, ShouldPrepareMessageIfTypeIsCorrect)  // NOLINT
 {
-    MsgWifiToHumidifier msg("humidification_power", 2);
+    MessagesSerializer msg("humidification_power", 2);
     std::vector<uint8_t> expectedContent{85, 170, 0, 6, 0, 5, 106, 4, 0, 1, 2, 123};
 
     CHECK_TRUE(msg.getData() == expectedContent);
@@ -25,7 +25,7 @@ TEST(TestMessages, ShouldPrepareMessageIfTypeIsCorrect)  // NOLINT
 
 TEST(TestMessages, ShouldReturnEmptyDataOnWrongMsgType)  // NOLINT
 {
-    MsgWifiToHumidifier msg("blah", 2);
+    MessagesSerializer msg("blah", 2);
     std::vector<uint8_t> expectedContent{85, 170, 0, 6, 0, 5, 106, 4, 0, 1, 2, 123};
 
     CHECK_TRUE(msg.getData().size() == 0);

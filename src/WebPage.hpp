@@ -37,6 +37,13 @@ public:
                             request.send(HTML_OK, "text/html", Resources::getIndexHtml());
                         });
 
+        m_server->onGet("/main.js",
+                        [this](WebServer::Request &request)
+                        {
+                            Logger::debug("get /");
+                            request.send(HTML_OK, "application/javascript", Resources::getMainJs());
+                        });
+
         m_server->onGet("/favicon.ico",
                         [this](WebServer::Request &request)
                         {

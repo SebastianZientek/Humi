@@ -8,6 +8,11 @@ public:
         return mock("ResourcesMock").actualCall("getIndexHtml").returnStringValueOrDefault("");
     }
 
+    [[nodiscard]] static const char *getMainJs()
+    {
+        return mock("ResourcesMock").actualCall("getMainJs").returnStringValueOrDefault("");
+    }
+
     [[nodiscard]] static const char *getPicoCss()
     {
         return mock("ResourcesMock").actualCall("getPicoCss").returnStringValueOrDefault("");

@@ -45,10 +45,11 @@ set(INCLS
 
 set(SRCS 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/MessageEncoder.cpp
     
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/test_main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestWebPage.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestMessages.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestMessageEncoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestHumidifierUart.cpp
 )
 

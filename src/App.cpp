@@ -13,7 +13,8 @@ void App::init()
 
     WifiConfigurator::connectToWifi();
     Logger::info("Local IP {}", WiFi.localIP().toString().c_str());
-    m_webPage.start([](const std::string &msgType, uint8_t value) {});
+    m_webPage.start([this](const std::string &msgType, uint8_t value)
+                    { return m_humidifierUart.sendMessage(msgType, value); });
 }
 
 void App::update()

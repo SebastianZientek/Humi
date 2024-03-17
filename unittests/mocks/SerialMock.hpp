@@ -32,7 +32,6 @@ public:
     }
 
     // Testability
-
     void setBuffer(const std::deque<uint8_t> &data)
     {
         m_buffer = data;

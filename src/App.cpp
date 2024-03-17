@@ -19,11 +19,10 @@ void App::init()
     m_humidifierUart.setReceiveCallback(
         [](const std::string &type, uint8_t value)
         {
-            if (type != "")
+            if (!type.empty())
             {
-                Logger::debug(">>>>>: {}, value {}", type, value);
+                Logger::debug("Read message: {}, value {}", type, value);
             }
-            // Logger::debug("Read message: {}, value {}", type, value);
         });
 }
 

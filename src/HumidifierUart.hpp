@@ -71,7 +71,7 @@ public:
     }
 
 private:
-    constexpr static auto m_bufferSize = 256;
+    constexpr static auto m_bufferSize = 128;
 
     Uart *m_uart;
     std::vector<uint8_t> m_buffer;

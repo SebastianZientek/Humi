@@ -15,10 +15,25 @@ void App::init()
     Logger::info("Local IP {}", WiFi.localIP().toString().c_str());
     m_webPage.start([this](const std::string &msgType, uint8_t value)
                     { return m_humidifierUart.sendMessage(msgType, value); });
+
+    m_humidifierUart.setReceiveCallback(
+        [](const std::string &type, uint8_t value)
+        {
+            if (type != "")
+            {
+                Logger::debug(">>>>>: {}, value {}", type, value);
+            }
+            // Logger::debug("Read message: {}, value {}", type, value);
+        });
 }
 
 void App::update()
 {
-    Logger::debug("Alive");
-    delay(5000);
+    static constexpr auto uartUpdatePeriodMs = 250;
+    static auto uartLastUpdate = millis();
+    if (uartLastUpdate + uartUpdatePeriodMs < millis())
+    {
+        uartLastUpdate = millis();
+        m_humidifierUart.update();
+    }
 }

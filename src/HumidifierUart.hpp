@@ -46,7 +46,7 @@ public:
     {
         readDataToBuffer();
 
-        auto positionToRead = 0;
+        size_t positionToRead = 0;
         while (true)
         {
             // There is nothing to read
@@ -71,7 +71,7 @@ public:
     }
 
 private:
-    constexpr static auto m_bufferSize = 100;
+    constexpr static auto m_bufferSize = 256;
 
     Uart *m_uart;
     std::vector<uint8_t> m_buffer;
@@ -79,7 +79,7 @@ private:
 
     void readDataToBuffer()
     {
-        while (m_uart->available() && m_buffer.size() < m_bufferSize)
+        while (m_uart->available() > 0 && m_buffer.size() < m_bufferSize)
         {
             auto byte = m_uart->read();
             m_buffer.push_back(byte);

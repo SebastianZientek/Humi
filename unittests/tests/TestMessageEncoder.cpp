@@ -30,6 +30,19 @@ TEST(TestMessageEncoder, ShouldReturnEmptyDataOnWrongMsgType)  // NOLINT
     CHECK_EQUAL(encoded.size(), 0);
 }
 
+TEST(TestMessageEncoder, ShouldReturnEmptyDataWhenThereIsNothingToDecode)  // NOLINT
+{
+    std::string expectedType = "";
+    constexpr size_t expectedBytesToConsume = 0;
+    std::vector<uint8_t> noWaterMsg = {};
+    auto [msg, readedBytes] = MessageEncoder::decodeFirsMsgInRange(noWaterMsg);
+
+    CHECK_EQUAL(msg.type, expectedType);
+    CHECK_EQUAL(msg.value, 0);
+    CHECK_EQUAL(readedBytes, expectedBytesToConsume);
+}
+
+
 TEST(TestMessageEncoder, ShouldDecodeMsgWhenJustMsgIsInData)  // NOLINT
 {
     std::string expectedType = "water_lvl";

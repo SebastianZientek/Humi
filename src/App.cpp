@@ -1,6 +1,7 @@
 #include "App.hpp"
 
 #include <Arduino.h>
+#include <fmt/format.h>
 
 #include "Logger.hpp"
 #include "WifiConfigurator.hpp"
@@ -13,14 +14,23 @@ void App::init()
 
     WifiConfigurator::connectToWifi();
     Logger::info("Local IP {}", WiFi.localIP().toString().c_str());
-    m_webPage.start([this](const std::string &msgType, uint8_t value)
-                    { return m_humidifierUart.sendMessage(msgType, value); });
 
+    auto onWebMsgClbk = [this](const std::string &msgType, uint8_t value)
+    { return m_humidifierUart.sendMessage(msgType, value); };
+    auto onEventInitClvk
+        = [this]() { m_webPage.sendEvent("humidifierState", m_humidifierState.dump().c_str()); };
+
+    m_webPage.start(onWebMsgClbk, onEventInitClvk);
     m_humidifierUart.setReceiveCallback(
-        [](const std::string &type, uint8_t value)
+        [this](const std::string &type, uint8_t value)
         {
             if (!type.empty())
             {
+                m_humidifierState[type] = value;
+
+                // m_webPage.sendEvent("humidifierState", m_humidifierState.dump().c_str());
+                m_webPage.sendEvent("humidifierState",
+                                    fmt::format(R"({{"{}": {}}})", type, value).c_str());
                 Logger::debug("Read message: {}, value {}", type, value);
             }
         });

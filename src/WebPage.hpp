@@ -20,15 +20,17 @@ class WebPage
 
 public:
     using ConfigureClbk = std::function<bool(const std::string &msgType, uint8_t value)>;
+    using InitEventClbk = std::function<void()>;
 
     explicit WebPage(const std::shared_ptr<WebServer> &webServer)
         : m_server(webServer)
     {
     }
 
-    void start(const ConfigureClbk &onConfigureClbk)
+    void start(const ConfigureClbk &onConfigureClbk, const InitEventClbk &onInitEventClbk)
     {
         m_onConfigureClbk = onConfigureClbk;
+        m_onInitEventClbk = onInitEventClbk;
 
         m_server->onGet("/",
                         [this](WebServer::Request &request)
@@ -66,13 +68,33 @@ public:
                              onSet(request, body);
                          });
 
+        m_server->setupEventsSource(
+            "/events",
+            [this](WebServer::EventSrcClient &client)
+            {
+                Logger::debug("Client connected");
+                if (client.lastId() != 0)
+                {
+                    Logger::debug("Client reconnected, last ID: {}", client.lastId());
+                }
+                // client.send("init", nullptr, m_eventIdentifier++, RECONNECT_TIMEOUT);
+                m_onInitEventClbk();
+            });
+
         m_server->start();
+    }
+
+    void sendEvent(const char *event, const char *message)
+    {
+        m_server->sendEvent(message, event, m_eventIdentifier++);
     }
 
 private:
     constexpr static auto port = 80;
+    size_t m_eventIdentifier = 1;
     std::shared_ptr<WebServer> m_server;
     ConfigureClbk m_onConfigureClbk;
+    InitEventClbk m_onInitEventClbk;
 
     void onSet(WebServer::Request &request, const std::string &body)
     {

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include <memory>
+#include <nlohmann/json.hpp>
 
 #include "HumidifierUart.hpp"
 #include "MessageEncoder.hpp"
@@ -25,4 +26,5 @@ private:
     std::shared_ptr<WebSrv> m_webSrv{std::make_shared<WebSrv>(80)};
     MainWebPage m_webPage{m_webSrv};
     HumidifierUart<decltype(Serial), MessageEncoder> m_humidifierUart{&Serial};
+    nlohmann::json m_humidifierState;
 };

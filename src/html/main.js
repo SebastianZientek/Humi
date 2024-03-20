@@ -6,16 +6,6 @@ function showInfoModal(text) {
     dialog.showModal();
 }
 
-function switchButton(clickedButton, groupName) {
-    let container = document.getElementById(groupName);
-    let allButtons = container.querySelectorAll('button');
-    allButtons.forEach(function (button) {
-        button.disabled = false;
-    });
-
-    clickedButton.disabled = true;
-}
-
 async function send(messageType, value) {
     let message = {
         "type": messageType,
@@ -38,10 +28,9 @@ async function send(messageType, value) {
     }
 }
 
-function sendMessage(group, messageType, value) {
+function sendMessage(messageType, value) {
     send(messageType, value);
-
-    switchButton(event.target, group);
+    event.target.disabled = true;
 }
 
 function timerChanged(selectedTime) {
@@ -69,3 +58,125 @@ function closeModal(modalName) {
     const dialog = document.getElementById(modalName);
     dialog.close();
 }
+
+function getButton(id) {
+    return document.getElementById(id);
+}
+
+function resetControls(controls) {
+    for (let cntrl in controls) {
+        if (controls.hasOwnProperty(cntrl) === false) continue;
+
+        let buttons = controls[cntrl]
+        for (let id in buttons) {
+            let button = buttons[id];
+            button.disabled = false;
+        }
+    }
+}
+
+function setButtonsState(configuration, controls) {
+    for (var cntrl in configuration) {
+        if (configuration.hasOwnProperty(cntrl) === false) continue;
+        if (controls.hasOwnProperty(cntrl) === false) continue;
+
+        let value = configuration[cntrl];
+        if (controls[cntrl].hasOwnProperty(value) === false) continue;
+
+        controls[cntrl][value].disabled = true;
+    }
+}
+
+window.addEventListener('load', function () {
+    let controls = {
+        "power": {
+            0: getButton("btn_off"),
+            1: getButton("btn_on")
+        },
+        "humidification_power": {
+            0: getButton("hpow_0"),
+            1: getButton("hpow_1"),
+            2: getButton("hpow_2"),
+            3: getButton("hpow_3"),
+        },
+        "humidification_level": {
+            1: getButton("hlvl_1"),
+            2: getButton("hlvl_2"),
+            3: getButton("hlvl_3"),
+            4: getButton("hlvl_4"),
+            5: getButton("hlvl_5"),
+            6: getButton("hlvl_6"),
+            7: getButton("hlvl_7"),
+            8: getButton("hlvl_8")
+        },
+        "night_mode": {
+            0: getButton("night_0"),
+            1: getButton("night_1"),
+        },
+        "auto_mode": {
+            0: getButton("auto_0"),
+            1: getButton("auto_1"),
+        },
+        "light": {
+            0: getButton("light_0"),
+            1: getButton("light_1"),
+            2: getButton("light_2"),
+            3: getButton("light_3"),
+        }
+    }
+
+    let configuration = {
+        "power": 1,
+    };
+
+    resetControls(controls);
+    setButtonsState(configuration, controls);
+
+    console.log(controls)
+
+    if (!!window.EventSource) {
+        var source = new EventSource('/events');
+
+        source.addEventListener('open', function (e) {
+            console.log("Connected");
+        }, false);
+
+        source.addEventListener('error', function (e) {
+            if (e.target.readyState != EventSource.OPEN) {
+                console.log("Disconnected");
+            }
+        }, false);
+
+        source.addEventListener('humidifierState', function (e) {
+            const change = JSON.parse(e.data);
+
+            if (change.hasOwnProperty("humidity_lvl")) {
+                const humidity = document.getElementById("humidity");
+                humidity.value = change["humidity_lvl"] + "%";
+            }
+
+            if (change.hasOwnProperty("water_lvl")) {
+                const water_container = document.getElementById("water_container");
+                if (change["water_lvl"] == 1) {
+                    water_container.value = "full";
+                }
+                else {
+                    water_container.value = "empty";
+                }
+            }
+
+            if (change.hasOwnProperty("timer")) {
+                const timer = document.getElementById("timer_select");
+                const toSelect = change["timer"];
+                timer.options[toSelect].selected = true;
+            }
+
+            for (var key in change) {
+                configuration[key] = change[key];
+            }
+
+            resetControls(controls);
+            setButtonsState(configuration, controls);
+        }, false);
+    }
+})

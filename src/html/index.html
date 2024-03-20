@@ -32,8 +32,8 @@
         <article>
             <header>Main</header>
             <div role="group" id="power">
-                <button id="btn_on" onclick="sendMessage('power', 'power', 1)" disabled>ON</button>
-                <button id="btn_off" onclick="sendMessage('power', 'power', 0)">OFF</button>
+                <button id="btn_on" onclick="sendMessage('power', 1)" disabled>ON</button>
+                <button id="btn_off" onclick="sendMessage('power', 0)">OFF</button>
             </div>
             <div class="grid">
                 <div role="group">
@@ -49,28 +49,28 @@
         <article id="humidification">
             <header>Humidification</header>
             <div role="group">
-                <button id="hlvl_1" onclick="sendMessage('humidification', 'humidification_level', 1)">40%</button>
-                <button id="hlvl_2" onclick="sendMessage('humidification', 'humidification_level', 2)">45%</button>
-                <button id="hlvl_3" onclick="sendMessage('humidification', 'humidification_level', 3)">50%</button>
-                <button id="hlvl_4" onclick="sendMessage('humidification', 'humidification_level', 4)">55%</button>
+                <button id="hlvl_1" onclick="sendMessage('humidification_level', 1)">40%</button>
+                <button id="hlvl_2" onclick="sendMessage('humidification_level', 2)">45%</button>
+                <button id="hlvl_3" onclick="sendMessage('humidification_level', 3)">50%</button>
+                <button id="hlvl_4" onclick="sendMessage('humidification_level', 4)">55%</button>
             </div>
             <div role="group">
-                <button id="hlvl_5" onclick="sendMessage('humidification', 'humidification_level', 5)">60%</button>
-                <button id="hlvl_6" onclick="sendMessage('humidification', 'humidification_level', 6)">65%</button>
-                <button id="hlvl_7" onclick="sendMessage('humidification', 'humidification_level', 7)">70%</button>
-                <button id="hlvl_8" onclick="sendMessage('humidification', 'humidification_level', 8)">75%</button>
+                <button id="hlvl_5" onclick="sendMessage('humidification_level', 5)">60%</button>
+                <button id="hlvl_6" onclick="sendMessage('humidification_level', 6)">65%</button>
+                <button id="hlvl_7" onclick="sendMessage('humidification_level', 7)">70%</button>
+                <button id="hlvl_8" onclick="sendMessage('humidification_level', 8)">75%</button>
             </div>
             <hr>
             <br>
             <div role="group">
-                <button id="hpow_0" onclick="sendMessage('humidification', 'humidification_power', 0)">Low</button>
-                <button id="hpow_1" onclick="sendMessage('humidification', 'humidification_power', 1)" disabled>Medium</button>
-                <button id="hpow_2" onclick="sendMessage('humidification', 'humidification_power', 2)">High</button>
-                <button id="hpow_3" onclick="sendMessage('humidification', 'humidification_power', 3)">Turbo</button>
+                <button id="hpow_0" onclick="sendMessage('humidification_power', 0)">Low</button>
+                <button id="hpow_1" onclick="sendMessage('humidification_power', 1)" disabled>Medium</button>
+                <button id="hpow_2" onclick="sendMessage('humidification_power', 2)">High</button>
+                <button id="hpow_3" onclick="sendMessage('humidification_power', 3)">Turbo</button>
             </div>
             <div role="group">
-                <button id="auto_0" onclick="sendMessage('humidification', 'auto_mode', 0)">Auto: OFF</button>
-                <button id="auto_1" onclick="sendMessage('humidification', 'auto_mode', 1)">Auto: ON</button>
+                <button id="auto_0" onclick="sendMessage('auto_mode', 0)">Auto: OFF</button>
+                <button id="auto_1" onclick="sendMessage('auto_mode', 1)">Auto: ON</button>
             </div>
         </article>
         <article id="timer">
@@ -94,14 +94,14 @@
         <article>
             <header>Night mode and light</header>
             <div role="group" id="night_mode">
-                <button id="night_0" onclick="sendMessage('night_mode', 'night_mode', 0)" disabled>Night mode: OFF</button>
-                <button id="night_1" onclick="sendMessage('night_mode', 'night_mode', 1)">Night mode: ON</button>
+                <button id="night_0" onclick="sendMessage('night_mode', 0)" disabled>Night mode: OFF</button>
+                <button id="night_1" onclick="sendMessage('night_mode', 1)">Night mode: ON</button>
             </div>
             <div role="group" id="light">
-                <button id="light_0" onclick="sendMessage('light', 'light', 0)">Off</button>
-                <button id="light_1" onclick="sendMessage('light', 'light', 1)">Dimmed</button>
-                <button id="light_2" onclick="sendMessage('light', 'light', 2)">Normal</button>
-                <button id="light_3" onclick="sendMessage('light', 'light', 3)">Bright</button>
+                <button id="light_0" onclick="sendMessage('light', 0)">Off</button>
+                <button id="light_1" onclick="sendMessage('light', 1)">Dimmed</button>
+                <button id="light_2" onclick="sendMessage('light', 2)">Normal</button>
+                <button id="light_3" onclick="sendMessage('light', 3)">Bright</button>
             </div>
         </article>
     </main>

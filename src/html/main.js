@@ -28,7 +28,7 @@ async function send(messageType, value) {
     }
 }
 
-function sendMessage(group, messageType, value) {
+function sendMessage(messageType, value) {
     send(messageType, value);
     event.target.disabled = true;
 }

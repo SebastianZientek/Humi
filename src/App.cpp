@@ -27,8 +27,6 @@ void App::init()
             if (!type.empty())
             {
                 m_humidifierState[type] = value;
-
-                // m_webPage.sendEvent("humidifierState", m_humidifierState.dump().c_str());
                 m_webPage.sendEvent("humidifierState",
                                     fmt::format(R"({{"{}": {}}})", type, value).c_str());
                 Logger::debug("Read message: {}, value {}", type, value);

@@ -42,7 +42,6 @@ TEST(TestMessageEncoder, ShouldReturnEmptyDataWhenThereIsNothingToDecode)  // NO
     CHECK_EQUAL(readedBytes, expectedBytesToConsume);
 }
 
-
 TEST(TestMessageEncoder, ShouldDecodeMsgWhenJustMsgIsInData)  // NOLINT
 {
     std::string expectedType = "water_lvl";

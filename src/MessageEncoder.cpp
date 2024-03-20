@@ -33,8 +33,7 @@ const std::map<std::vector<uint8_t>, std::string> decodingMap{
     {{102, 4, 0, 1}, "light"},
     {{108, 4, 0, 1}, "timer"},
     {{101, 4, 0, 1}, "water_lvl"},
-    {{109, 2, 0, 4, 0, 0, 0}, "humidity_lvl"}
-};
+    {{109, 2, 0, 4, 0, 0, 0}, "humidity_lvl"}};
 
 auto findPreamble(std::span<uint8_t> dataRange)
 {

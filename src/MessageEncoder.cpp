@@ -94,6 +94,11 @@ std::string getMsgType(const std::span<uint8_t> &msg)
     auto startMsgTypeIt = msg.begin() + headerSize;
     auto endMsgTypeIt = msg.end() - valueSize - checkSumSize;
 
+    if (startMsgTypeIt > endMsgTypeIt)
+    {
+        startMsgTypeIt = endMsgTypeIt;
+    }
+
     std::vector<uint8_t> msgTypeData(startMsgTypeIt, endMsgTypeIt);
     if (decodingMap.find(msgTypeData) == decodingMap.end())
     {

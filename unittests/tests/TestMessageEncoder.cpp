@@ -156,3 +156,15 @@ TEST(TestMessageEncoder, SouldReturnEmptyMessageWhileChecksumIsWrong)  // NOLINT
     CHECK_EQUAL(msg.value, 0);
     CHECK_EQUAL(readedBytes, expectedBytesToConsume);
 }
+
+TEST(TestMessageEncoder, ShouldDecodeMsgWithEmptyPayload)  // NOLINT
+{
+    std::string expectedType = "i_am_alive";
+    constexpr size_t expectedBytesToConsume = 7;
+    std::vector<uint8_t> iAmAlive = {85, 170, 0, 0, 0, 0, 255};
+    auto [msg, readedBytes] = MessageEncoder::decodeFirsMsgInRange(iAmAlive);
+
+    CHECK_EQUAL(msg.type, expectedType);
+    CHECK_EQUAL(msg.value, 0);
+    CHECK_EQUAL(readedBytes, expectedBytesToConsume);
+}

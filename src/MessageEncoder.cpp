@@ -11,6 +11,7 @@ namespace
 constexpr auto headerSize = 6;
 constexpr auto valueSize = 1;
 constexpr auto checkSumSize = 1;
+constexpr auto payloadSizeByteIndex = 5;
 
 const std::map<std::string, std::vector<uint8_t>> encodingMap{
     {"power", {0, 6, 0, 5, 10, 1, 0, 1}},
@@ -23,6 +24,7 @@ const std::map<std::string, std::vector<uint8_t>> encodingMap{
     {"wifi_indicator", {0, 3, 0, 1}}};
 
 const std::map<std::vector<uint8_t>, std::string> decodingMap{
+    {{}, "i_am_alive"},
     {{10, 1, 0, 1}, "power"},
     {{106, 4, 0, 1}, "humidification_power"},
     {{105, 4, 0, 1}, "humidification_level"},
@@ -43,21 +45,16 @@ auto findPreamble(std::span<uint8_t> dataRange)
 template <typename It>
 size_t getPayloadSize(It msgStartIt)
 {
-    constexpr auto payloadSizeByteIndex = 5;
-    std::advance(msgStartIt, payloadSizeByteIndex);
-    auto payloadSize = *msgStartIt;
-
-    return payloadSize;
+    auto playloadSizeIt = msgStartIt + payloadSizeByteIndex;
+    return *playloadSizeIt;
 }
 
 template <typename It>
 std::optional<It> getMessageEnd(It msgStartIt, It dataEnd)
 {
-    constexpr auto headerSize = 6;
-    constexpr auto checksumSize = 1;
     auto payloadSize = getPayloadSize(msgStartIt);
 
-    size_t msgLength = headerSize + payloadSize + checksumSize;
+    size_t msgLength = headerSize + payloadSize + checkSumSize;
     size_t amountOfDataInBuffer = std::distance(msgStartIt, dataEnd);
 
     if (msgLength > amountOfDataInBuffer)

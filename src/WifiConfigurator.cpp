@@ -10,11 +10,10 @@
 void WifiConfigurator::connectToWifi()
 {
     static WiFiManager wifiManager;
-    if (!wifiManager.autoConnect("YourWiFiAP"))
+    constexpr auto delayBeforeResetUs = 5000;
+    if (!wifiManager.autoConnect("HumiConnectToWiFi"))
     {
-        delay(3000);
-        // Reset and try again
+        delay(delayBeforeResetUs);
         ESP.reset();
-        delay(5000);
     }
 }

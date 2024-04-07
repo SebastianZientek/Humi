@@ -5,7 +5,7 @@
 class SerialStub
 {
 public:
-    void begin(std::size_t)
+    void begin(std::size_t baud)
     {
     }
 

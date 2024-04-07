@@ -8,8 +8,8 @@
 
 void App::init()
 {
-    Serial.begin(9600);
-    Serial1.begin(9600);
+    Serial.begin(m_serialSpeed);
+    Serial1.begin(m_serialSpeed);
     Logger::init([](const std::string &txt) { Serial1.println(txt.c_str()); });
 
     WifiConfigurator::connectToWifi();

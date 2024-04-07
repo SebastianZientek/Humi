@@ -37,7 +37,7 @@ const std::map<std::vector<uint8_t>, std::string> decodingMap{
 
 auto findPreamble(std::span<uint8_t> dataRange)
 {
-    auto preamble = std::array<uint8_t, 2>{85, 170};
+    auto preamble = std::array<uint8_t, 2>{85, 170};  // NOLINT
     return std::search(dataRange.begin(), dataRange.end(), preamble.begin(), preamble.end());
 }
 
@@ -115,7 +115,7 @@ uint8_t getValue(const std::span<uint8_t> &msg)
 bool isChecksumOk(const std::span<uint8_t> &msg)
 {
     auto checkSumValue = *(msg.end() - valueSize);
-    auto computedCheckSum = std::accumulate(msg.begin(), msg.end() - 1, 0) % 256;
+    auto computedCheckSum = std::accumulate(msg.begin(), msg.end() - 1, 0) % 256;  // NOLINT
 
     return checkSumValue == computedCheckSum;
 }
@@ -152,7 +152,7 @@ std::vector<uint8_t> MessageEncoder::encode(const std::string &type, uint8_t val
     if (encodingMap.find(type) != encodingMap.end())
     {
         // Preamble
-        data.insert(data.end(), {85, 170});
+        data.insert(data.end(), {85, 170});  // NOLINT
 
         // Content
         const auto &content = encodingMap.at(type);
@@ -162,7 +162,7 @@ std::vector<uint8_t> MessageEncoder::encode(const std::string &type, uint8_t val
         data.push_back(value);
 
         // Control sum
-        uint8_t controlSum = std::accumulate(data.begin(), data.end(), 0) % 256;
+        uint8_t controlSum = std::accumulate(data.begin(), data.end(), 0) % 256;  // NOLINT
         data.push_back(controlSum);
     }
     return data;

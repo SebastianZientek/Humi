@@ -11,17 +11,17 @@ INCBIN(Favicon, "src/html/fav.png");
 
 const char *Resources::getIndexHtml()
 {
-    return (char *)gIndexHtmlData;
+    return reinterpret_cast<const char *>(gIndexHtmlData);  // NOLINT
 }
 
 const char *Resources::getMainJs()
 {
-    return (char *)gMainJsData;
+    return reinterpret_cast<const char *>(gMainJsData);  // NOLINT
 }
 
 const char *Resources::getPicoCss()
 {
-    return (char *)gPicoCssData;
+    return reinterpret_cast<const char *>(gPicoCssData);  // NOLINT
 }
 
 const unsigned char *Resources::getFavicon()

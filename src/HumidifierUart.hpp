@@ -55,7 +55,8 @@ public:
                 break;
             }
 
-            std::span<uint8_t> bufferRangeToRead{m_buffer.begin() + positionToRead, m_buffer.end()};
+            std::span<uint8_t> bufferRangeToRead{m_buffer.begin() + positionToRead,  // NOLINT
+                                                 m_buffer.end()};
             auto [msg, consumedBytes] = MsgEncoder::decodeFirsMsgInRange(bufferRangeToRead);
 
             // Can't consume data
@@ -67,7 +68,7 @@ public:
             positionToRead += consumedBytes;
         }
 
-        m_buffer.erase(m_buffer.begin(), m_buffer.begin() + positionToRead);
+        m_buffer.erase(m_buffer.begin(), m_buffer.begin() + positionToRead);  // NOLINT
     }
 
 private:

@@ -19,7 +19,7 @@ public:
     };
 
     static void init(
-        PrinterFunc printerFunc = [](const std::string &) {},
+        const PrinterFunc &printerFunc = [](const std::string &) {},
         LogLevel initialLogLevel = LogLevel::DEBUG)
     {
         printer = printerFunc;
@@ -56,8 +56,8 @@ public:
     }
 
 private:
-    static LogLevel currentLogLevel;
-    static PrinterFunc printer;
+    static LogLevel currentLogLevel;  // NOLINT
+    static PrinterFunc printer;       // NOLINT
 
     template <typename... Args>
     static void log(LogLevel level,

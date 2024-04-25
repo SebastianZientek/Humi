@@ -84,6 +84,11 @@ public:
         m_server->sendEvent(message, event, m_eventIdentifier++);
     }
 
+    void stop()
+    {
+        m_server->stop();
+    }
+
 private:
     constexpr static auto port = 80;
     size_t m_eventIdentifier = 1;

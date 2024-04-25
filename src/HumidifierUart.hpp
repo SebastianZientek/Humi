@@ -49,12 +49,6 @@ public:
         size_t positionToRead = 0;
         while (true)
         {
-            // There is nothing to read
-            if (positionToRead >= m_buffer.size())
-            {
-                break;
-            }
-
             std::span<uint8_t> bufferRangeToRead{m_buffer.begin() + positionToRead,  // NOLINT
                                                  m_buffer.end()};
             auto [msg, consumedBytes] = MsgEncoder::decodeFirsMsgInRange(bufferRangeToRead);
@@ -65,7 +59,13 @@ public:
                 break;
             }
             m_onReceiveClbk(msg.type, msg.value);
+
             positionToRead += consumedBytes;
+            // There is nothing to read
+            if (positionToRead >= m_buffer.size())
+            {
+                break;
+            }
         }
 
         m_buffer.erase(m_buffer.begin(), m_buffer.begin() + positionToRead);  // NOLINT

@@ -9,11 +9,23 @@
 
 void WifiConfigurator::connectToWifi()
 {
-    static WiFiManager wifiManager;
+    // static WiFiManager wifiManager;
+    WiFiManager wifiManager;
+    wifiManager.setDebugOutput(false);
+
     constexpr auto delayBeforeResetUs = 5000;
     if (!wifiManager.autoConnect("HumiConnectToWiFi"))
     {
         delay(delayBeforeResetUs);
         ESP.reset();
     }
+}
+
+void WifiConfigurator::startConfigPortal()
+{
+    WiFi.disconnect();
+
+    WiFiManager wifiManager;
+    wifiManager.setDebugOutput(false);
+    wifiManager.startConfigPortal("HumiConnectToWiFi");
 }

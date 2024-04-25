@@ -8,6 +8,7 @@
 
 namespace
 {
+constexpr auto preambleSize = 2;
 constexpr auto headerSize = 6;
 constexpr auto valueSize = 1;
 constexpr auto checkSumSize = 1;
@@ -24,16 +25,17 @@ const std::map<std::string, std::vector<uint8_t>> encodingMap{
     {"wifi_indicator", {0, 3, 0, 1}}};
 
 const std::map<std::vector<uint8_t>, std::string> decodingMap{
-    {{}, "i_am_alive"},
-    {{10, 1, 0, 1}, "power"},
-    {{106, 4, 0, 1}, "humidification_power"},
-    {{105, 4, 0, 1}, "humidification_level"},
-    {{103, 1, 0, 1}, "night_mode"},
-    {{104, 1, 0, 1}, "auto_mode"},
-    {{102, 4, 0, 1}, "light"},
-    {{108, 4, 0, 1}, "timer"},
-    {{101, 4, 0, 1}, "water_lvl"},
-    {{109, 2, 0, 4, 0, 0, 0}, "humidity_lvl"}};
+    {{0, 0, 0}, "i_am_alive"},
+    {{3, 4, 0}, "wifi_pair"},
+    {{3, 7, 0, 5, 10, 1, 0, 1}, "power"},
+    {{3, 7, 0, 5, 106, 4, 0, 1}, "humidification_power"},
+    {{3, 7, 0, 5, 105, 4, 0, 1}, "humidification_level"},
+    {{3, 7, 0, 5, 103, 1, 0, 1}, "night_mode"},
+    {{3, 7, 0, 5, 104, 1, 0, 1}, "auto_mode"},
+    {{3, 7, 0, 5, 102, 4, 0, 1}, "light"},
+    {{3, 7, 0, 5, 108, 4, 0, 1}, "timer"},
+    {{3, 7, 0, 5, 101, 4, 0, 1}, "water_lvl"},
+    {{3, 7, 0, 8, 109, 2, 0, 4, 0, 0, 0}, "humidity_lvl"}};
 
 auto findPreamble(std::span<uint8_t> dataRange)
 {
@@ -90,7 +92,8 @@ std::span<uint8_t> getMessageRange(const std::span<uint8_t> &dataRange)
 
 std::string getMsgType(const std::span<uint8_t> &msg)
 {
-    auto startMsgTypeIt = msg.begin() + headerSize;
+    // auto startMsgTypeIt = msg.begin() + headerSize;
+    auto startMsgTypeIt = msg.begin() + preambleSize;
     auto endMsgTypeIt = msg.end() - valueSize - checkSumSize;
 
     if (startMsgTypeIt > endMsgTypeIt)

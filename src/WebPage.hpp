@@ -16,6 +16,12 @@ class WebPage
 
 public:
     using ConfigureClbk = std::function<bool(const std::string &msgType, uint8_t value)>;
+    using MqttSettingsClbk = std::function<void(bool enabled,
+                                                const std::string &user,
+                                                const std::string &passwd,
+                                                const std::string &ip,
+                                                int port)>;
+    using OtaSettingsClbk = std::function<void(bool enabled)>;
     using InitEventClbk = std::function<void()>;
 
     explicit WebPage(const std::shared_ptr<WebServer> &webServer)
@@ -23,10 +29,15 @@ public:
     {
     }
 
-    void start(const ConfigureClbk &onConfigureClbk, const InitEventClbk &onInitEventClbk)
+    void start(const ConfigureClbk &onConfigureClbk,
+               const InitEventClbk &onInitEventClbk,
+               const MqttSettingsClbk &onMqttSettingsClbk,
+               const OtaSettingsClbk &onOtaSettingsClbk)
     {
         m_onConfigureClbk = onConfigureClbk;
         m_onInitEventClbk = onInitEventClbk;
+        m_onMqttSettingsClbk = onMqttSettingsClbk;
+        m_onOtaSettingsClbk = onOtaSettingsClbk;
 
         m_server->onGet("/",
                         [this](WebServer::Request &request)
@@ -60,21 +71,37 @@ public:
         m_server->onPost("/set",
                          [this](WebServer::Request &request, const std::string &body)
                          {
-                             Logger::debug("get /set {}", body);
+                             Logger::debug("post /set {}", body);
                              onSet(request, body);
                          });
 
-        m_server->setupEventsSource(
-            "/events",
-            [this](WebServer::EventSrcClient &client)
-            {
-                Logger::debug("Client connected");
-                if (client.lastId() != 0)
-                {
-                    Logger::debug("Client reconnected, last ID: {}", client.lastId());
-                }
-                m_onInitEventClbk();
-            });
+        m_server->onPost("/mqtt_config",
+                         [this](WebServer::Request &request, const std::string &body)
+                         {
+                             Logger::debug("post /mqtt_config {}", body);
+                             mqttSettings(request, body);
+                             request.send(HTML_OK);
+                         });
+
+        m_server->onPost("/ota_config",
+                         [this](WebServer::Request &request, const std::string &body)
+                         {
+                             Logger::debug("post /ota_config {}", body);
+                             otaSettings(request, body);
+                             request.send(HTML_OK);
+                         });
+
+        m_server->setupEventsSource("/events",
+                                    [this](WebServer::EventSrcClient &client)
+                                    {
+                                        Logger::debug("Client connected");
+                                        if (client.lastId() != 0)
+                                        {
+                                            Logger::debug("Client reconnected, last ID: {}",
+                                                          client.lastId());
+                                        }
+                                        m_onInitEventClbk();
+                                    });
 
         m_server->start();
     }
@@ -95,6 +122,8 @@ private:
     std::shared_ptr<WebServer> m_server;
     ConfigureClbk m_onConfigureClbk;
     InitEventClbk m_onInitEventClbk;
+    MqttSettingsClbk m_onMqttSettingsClbk;
+    OtaSettingsClbk m_onOtaSettingsClbk;
 
     void onSet(WebServer::Request &request, const std::string &body)
     {
@@ -139,5 +168,55 @@ private:
         }
 
         request.send(HTML_OK);
+    }
+
+    void mqttSettings(WebServer::Request &request, const std::string &body)
+    {
+        auto message = nlohmann::json::parse(body, nullptr, false);
+
+        if (message.is_discarded())
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        if (!message.contains("enabled") || !message.contains("user") || !message.contains("passwd")
+            || !message.contains("ip") || !message.contains("port"))
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        bool enabled = message["enabled"];
+        std::string user = message["user"];
+        std::string passwd = message["passwd"];
+        std::string ip = message["ip"];
+        int mqttPort = message["port"];
+
+        m_onMqttSettingsClbk(enabled, user, passwd, ip, mqttPort);
+        Logger::info("I");
+    }
+
+    void otaSettings(WebServer::Request &request, const std::string &body)
+    {
+        auto message = nlohmann::json::parse(body, nullptr, false);
+        if (message.is_discarded())
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        if (!message.contains("enabled"))
+        {
+            Logger::error("Can't parse json data, {}", body);
+            request.send(HTML_BAD_REQ);
+            return;
+        }
+
+        bool enabled = message["enabled"];
+        m_onOtaSettingsClbk(enabled);
     }
 };

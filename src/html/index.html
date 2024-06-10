@@ -42,7 +42,8 @@
                 </div>
                 <div role="group">
                     <input readonly type="text" name="text" value="Water container:" aria-label="Text" />
-                    <input readonly id="water_container" type="text" name="text" value="empty" aria-invalid="true" aria-label="Text" />
+                    <input readonly id="water_container" type="text" name="text" value="empty" aria-invalid="true"
+                        aria-label="Text" />
                 </div>
             </div>
         </article>
@@ -102,6 +103,46 @@
                 <button id="light_1" onclick="sendMessage('light', 1)">Dimmed</button>
                 <button id="light_2" onclick="sendMessage('light', 2)">Normal</button>
                 <button id="light_3" onclick="sendMessage('light', 3)">Bright</button>
+            </div>
+        </article>
+        <article>
+            <header>Mqtt</header>
+            <label>
+                <input id="mqtt_enabled" type="checkbox" name="enabled" />
+                Enabled
+            </label>
+            <form>
+                <fieldset class="grid">
+                    <input id="mqtt_user" name="User" placeholder="User" aria-label="User" autocomplete="username" />
+                    <input id="mqtt_passwd" type="password" name="password" placeholder="Password" aria-label="Password"
+                        autocomplete="current-password" />
+                </fieldset>
+            </form>
+            <form>
+                <fieldset class="grid">
+                    <div role="group">
+                        <input id="mqtt_ip" name="IP" placeholder="IP" aria-label="IP" autocomplete="ip" />
+                        <input id="mqtt_port" type="number" name="port" placeholder="Port" aria-label="Port" />
+                    </div>
+                    <div role="group">
+                        <input readonly type="text" name="text" value="Connection status:" aria-label="Text" />
+                        <input readonly id="mqtt_connection" type="text" name="text" value="disconnected" aria-invalid="true"
+                            aria-label="Text" />
+                    </div>
+                </fieldset>
+            </form>
+            <div role="group" id="save">
+                <button id="save" onclick="sendMqttSettings()">Save and reboot</button>
+            </div>
+        </article>
+        <article>
+            <header>OTA</header>
+            <label>
+                <input id="ota_enabled" type="checkbox" name="enabled" />
+                Enabled
+            </label>
+            <div role="group" id="save">
+                <button id="save" onclick="sendOtaSettings()">Save and reboot</button>
             </div>
         </article>
     </main>

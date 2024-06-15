@@ -30,6 +30,7 @@ async function send(messageType, value) {
 
 async function sendMqttSettings() {
     let mqttEnabled = document.getElementById("mqtt_enabled").checked;
+    let mqttDeviceName = document.getElementById("mqtt_device_name").value;
     let mqttUser = document.getElementById("mqtt_user").value;
     let mqttPasswd = document.getElementById("mqtt_passwd").value;
     let mqttIP = document.getElementById("mqtt_ip").value;
@@ -37,6 +38,7 @@ async function sendMqttSettings() {
 
     let message = {
         "enabled": mqttEnabled,
+        "name": mqttDeviceName,
         "user": mqttUser,
         "passwd": mqttPasswd,
         "ip": mqttIP,
@@ -239,17 +241,18 @@ window.addEventListener('load', function () {
             const config = JSON.parse(e.data);
 
             let mqttEnabled = document.getElementById("mqtt_enabled");
+            let mqttName = document.getElementById("mqtt_device_name");
             let mqttUser = document.getElementById("mqtt_user");
             let mqttIP = document.getElementById("mqtt_ip");
             let mqttPort = document.getElementById("mqtt_port");
             let otaEnabled = document.getElementById("ota_enabled");
 
             if (config.hasOwnProperty("mqttEnabled")) { mqttEnabled.checked = config["mqttEnabled"] }
+            if (config.hasOwnProperty("mqttName")) { mqttName.value = config["mqttName"] }
             if (config.hasOwnProperty("mqttUser")) { mqttUser.value = config["mqttUser"] }
             if (config.hasOwnProperty("mqttIP")) { mqttIP.value = config["mqttIP"] }
             if (config.hasOwnProperty("mqttPort")) { mqttPort.value = config["mqttPort"] }
             if (config.hasOwnProperty("otaEnabled")) { otaEnabled.checked = config["otaEnabled"] }
-
 
             console.log(config);
         }, false);

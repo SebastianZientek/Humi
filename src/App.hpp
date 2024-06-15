@@ -1,21 +1,22 @@
 #pragma once
 
 #include <Arduino.h>
+#include <LittleFS.h>
 
 #include <memory>
 #include <nlohmann/json.hpp>
 
+#include "Configuration.hpp"
 #include "HumidifierUart.hpp"
 #include "MessageEncoder.hpp"
+#include "MqttAdp.hpp"
+#include "MqttHumidifier.hpp"
 #include "Resources.hpp"
+#include "Timer.hpp"
 #include "WebPage.hpp"
 #include "WebServer/EventSrcClient.hpp"
 #include "WebServer/WebRequest.hpp"
 #include "WebServer/WebServer.hpp"
-#include "MqttAdp.hpp"
-#include "MqttHumidifier.hpp"
-#include "Configuration.hpp"
-#include <LittleFS.h>
 
 class App
 {
@@ -24,7 +25,12 @@ public:
     void update();
 
 private:
+    void setupPeripherals();
+    void setupWifi();
+    void setupWebPage();
+    void setupHumidifierUart();
     void setupMqtt();
+    void setupTimers();
 
     using WebSrv = WebServer<WebRequest, EventSrcClient>;
     using MainWebPage = WebPage<WebSrv, Resources>;
@@ -38,4 +44,8 @@ private:
     std::shared_ptr<MqttHumidifier<MqttAdp>> m_mqttHumidifier;
     Configuration<FS> m_config{LittleFS};
     bool m_shouldRestart{false};
+
+    Timer m_humidifierUartTimer;
+    Timer m_otaTimer;
+    Timer m_stateUpdateTimer;
 };

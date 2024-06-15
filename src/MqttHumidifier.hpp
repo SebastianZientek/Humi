@@ -17,8 +17,9 @@ class MqttHumidifier
 public:
     using RecvClbk = std::function<void(const std::string &msgType, uint8_t value)>;
 
-    MqttHumidifier(std::shared_ptr<MqttDevice> mqttDevice, const std::string &name, uint32_t id)
+    MqttHumidifier(std::shared_ptr<MqttDevice> mqttDevice, const std::string &name, uint32_t id, bool enabled = true)
         : m_mqttDevice(mqttDevice)
+        , m_enabled{enabled}
         , m_name(name)
         , m_chipId(std::to_string(id))
         , m_baseUri("humidifier/humi_" + m_chipId)
@@ -237,6 +238,23 @@ public:
 
 private:
     std::shared_ptr<MqttDevice> m_mqttDevice{};
+    bool m_enabled;
+    RecvClbk m_clbk;
+
+    std::string m_name;
+    std::string m_chipId;
+    std::string m_baseUri;
+
+    std::string MQTT_AVAILABILITY;
+    std::string MQTT_STATE;
+    std::string MQTT_COMMAND;
+    std::string MQTT_AUTOCONF_HUMIDITY_SENSOR;
+    std::string MQTT_AUTOCONF_WIFI_SENSOR;
+    std::string MQTT_AUTOCONF_WATER_TANK_SENSOR;
+    std::string MQTT_AUTOCONF_LIGHT_SWITCH;
+    std::string MQTT_AUTOCONF_AUTOMODE_SWITCH;
+    std::string MQTT_AUTOCONF_NIGHTMODE_SWITCH;
+    std::string MQTT_AUTOCONF_HUMIDIFIER;
 
     void sendAutoConfHumidity(const nlohmann::json &device, const std::string &identifier)
     {
@@ -404,21 +422,4 @@ private:
 
         m_mqttDevice->sendData(MQTT_AUTOCONF_HUMIDIFIER, autoconf.dump());
     }
-
-    RecvClbk m_clbk;
-
-    std::string m_name;
-    std::string m_chipId;
-    std::string m_baseUri;
-
-    std::string MQTT_AVAILABILITY;
-    std::string MQTT_STATE;
-    std::string MQTT_COMMAND;
-    std::string MQTT_AUTOCONF_HUMIDITY_SENSOR;
-    std::string MQTT_AUTOCONF_WIFI_SENSOR;
-    std::string MQTT_AUTOCONF_WATER_TANK_SENSOR;
-    std::string MQTT_AUTOCONF_LIGHT_SWITCH;
-    std::string MQTT_AUTOCONF_AUTOMODE_SWITCH;
-    std::string MQTT_AUTOCONF_NIGHTMODE_SWITCH;
-    std::string MQTT_AUTOCONF_HUMIDIFIER;
 };

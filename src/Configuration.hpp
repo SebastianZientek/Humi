@@ -2,6 +2,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "Logger.hpp"
+
 template <typename Filesystem>
 class Configuration
 {
@@ -10,6 +12,7 @@ public:
         : m_fileSystem(filesystem)
     {
         m_data["mqttEnabled"] = false;
+        m_data["mqttName"] = "Humidifier";
         m_data["mqttUser"] = "defaultUser";
         m_data["mqttPasswd"] = "defaultPasswd";
         m_data["mqttIP"] = "192.168.1.1";
@@ -61,6 +64,16 @@ public:
     bool isMqttEnabled()
     {
         return m_data["mqttEnabled"];
+    }
+
+    void setMqttName(const std::string &user)
+    {
+        m_data["mqttName"] = user;
+    }
+
+    std::string getMqttName()
+    {
+        return m_data["mqttName"];
     }
 
     void setMqttUser(const std::string &user)
@@ -118,6 +131,7 @@ public:
         nlohmann::json dump;
 
         dump["mqttEnabled"] = m_data["mqttEnabled"];
+        dump["mqttName"] = m_data["mqttName"];
         dump["mqttUser"] = m_data["mqttUser"];
         dump["mqttIP"] = m_data["mqttIP"];
         dump["mqttPort"] = m_data["mqttPort"];

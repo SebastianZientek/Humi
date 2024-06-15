@@ -17,6 +17,7 @@ class WebPage
 public:
     using ConfigureClbk = std::function<bool(const std::string &msgType, uint8_t value)>;
     using MqttSettingsClbk = std::function<void(bool enabled,
+                                                const std::string &name,
                                                 const std::string &user,
                                                 const std::string &passwd,
                                                 const std::string &ip,
@@ -181,7 +182,7 @@ private:
             return;
         }
 
-        if (!message.contains("enabled") || !message.contains("user") || !message.contains("passwd")
+        if (!message.contains("enabled") || !message.contains("name")  || !message.contains("user") || !message.contains("passwd")
             || !message.contains("ip") || !message.contains("port"))
         {
             Logger::error("Can't parse json data, {}", body);
@@ -190,12 +191,13 @@ private:
         }
 
         bool enabled = message["enabled"];
+        std::string name = message["name"];
         std::string user = message["user"];
         std::string passwd = message["passwd"];
         std::string ip = message["ip"];
         int mqttPort = message["port"];
 
-        m_onMqttSettingsClbk(enabled, user, passwd, ip, mqttPort);
+        m_onMqttSettingsClbk(enabled, name, user, passwd, ip, mqttPort);
         Logger::info("I");
     }
 

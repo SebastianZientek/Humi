@@ -198,7 +198,6 @@ private:
         int mqttPort = message["port"];
 
         m_onMqttSettingsClbk(enabled, name, user, passwd, ip, mqttPort);
-        Logger::info("I");
     }
 
     void otaSettings(WebServer::Request &request, const std::string &body)

@@ -17,11 +17,12 @@ class MqttHumidifier
 public:
     using RecvClbk = std::function<void(const std::string &msgType, uint8_t value)>;
 
-    MqttHumidifier(std::shared_ptr<MqttDevice> mqttDevice, const std::string &name, uint32_t id, bool enabled = true)
+    MqttHumidifier(std::shared_ptr<MqttDevice> mqttDevice,
+                   const std::string &name,
+                   const std::string &deviceId)
         : m_mqttDevice(mqttDevice)
-        , m_enabled{enabled}
         , m_name(name)
-        , m_chipId(std::to_string(id))
+        , m_chipId(deviceId)
         , m_baseUri("humidifier/humi_" + m_chipId)
         , MQTT_AVAILABILITY(m_baseUri + "/status")
         , MQTT_STATE(m_baseUri + "/state")
@@ -47,11 +48,6 @@ public:
             publishAutoConfig();
             m_mqttDevice->sendData(MQTT_AVAILABILITY, AVAILABILITY_ONLINE);
         }
-    }
-
-    bool isConnected()
-    {
-        return m_mqttDevice->isConnected();
     }
 
     void setRecvCallback(const RecvClbk &clbk)
@@ -147,6 +143,45 @@ public:
         }
     }
 
+    void publishActive(bool active)
+    {
+        nlohmann::json state;
+        state["state"] = active ? "on" : "off";
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+    void publishWifi(const std::string &ssid, const std::string &ip, int8_t rssi)
+    {
+        nlohmann::json state;
+        nlohmann::json wifi;
+
+        wifi["ssid"] = ssid;
+        wifi["ip"] = ip;
+        wifi["rssi"] = rssi;
+
+        state["wifi"] = wifi;
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+private:
+    std::shared_ptr<MqttDevice> m_mqttDevice{};
+    RecvClbk m_clbk;
+
+    std::string m_name;
+    std::string m_chipId;
+    std::string m_baseUri;
+
+    std::string MQTT_AVAILABILITY;
+    std::string MQTT_STATE;
+    std::string MQTT_COMMAND;
+    std::string MQTT_AUTOCONF_HUMIDITY_SENSOR;
+    std::string MQTT_AUTOCONF_WIFI_SENSOR;
+    std::string MQTT_AUTOCONF_WATER_TANK_SENSOR;
+    std::string MQTT_AUTOCONF_LIGHT_SWITCH;
+    std::string MQTT_AUTOCONF_AUTOMODE_SWITCH;
+    std::string MQTT_AUTOCONF_NIGHTMODE_SWITCH;
+    std::string MQTT_AUTOCONF_HUMIDIFIER;
+
     void publishAutoConfig()
     {
         nlohmann::json device;
@@ -166,95 +201,6 @@ public:
         sendAutoConfigNightMode(device, identifier);
         sendAutoConfigHumidifyingPower(device, identifier);
     }
-
-    void publishActive(bool active)
-    {
-        nlohmann::json state;
-        state["state"] = active ? "on" : "off";
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishTargetHumidity(int targetHumidity)
-    {
-        nlohmann::json state;
-        state["humiditySetpoint"] = targetHumidity;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishSensorHumidity(int humidity)
-    {
-        nlohmann::json state;
-        state["humidity"] = humidity;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishMode(std::string mode)
-    {
-        nlohmann::json state;
-        state["mode"] = mode;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishAutoMode(uint8_t enable)
-    {
-        nlohmann::json state;
-        state["auto_mode"] = enable;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishNightMode(uint8_t enable)
-    {
-        nlohmann::json state;
-        state["night_mode"] = enable;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishLight(bool enable)
-    {
-        nlohmann::json state;
-        state["light"] = enable ? "on" : "off";
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishWaterTank(bool full)
-    {
-        nlohmann::json state;
-        state["waterTank"] = full ? "full" : "empty";
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishWifi(const std::string &ssid, const std::string &ip, int8_t rssi)
-    {
-        nlohmann::json state;
-        nlohmann::json wifi;
-
-        wifi["ssid"] = ssid;
-        wifi["ip"] = ip;
-        wifi["rssi"] = rssi;
-
-        state["wifi"] = wifi;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-private:
-    std::shared_ptr<MqttDevice> m_mqttDevice{};
-    bool m_enabled;
-    RecvClbk m_clbk;
-
-    std::string m_name;
-    std::string m_chipId;
-    std::string m_baseUri;
-
-    std::string MQTT_AVAILABILITY;
-    std::string MQTT_STATE;
-    std::string MQTT_COMMAND;
-    std::string MQTT_AUTOCONF_HUMIDITY_SENSOR;
-    std::string MQTT_AUTOCONF_WIFI_SENSOR;
-    std::string MQTT_AUTOCONF_WATER_TANK_SENSOR;
-    std::string MQTT_AUTOCONF_LIGHT_SWITCH;
-    std::string MQTT_AUTOCONF_AUTOMODE_SWITCH;
-    std::string MQTT_AUTOCONF_NIGHTMODE_SWITCH;
-    std::string MQTT_AUTOCONF_HUMIDIFIER;
 
     void sendAutoConfHumidity(const nlohmann::json &device, const std::string &identifier)
     {
@@ -421,5 +367,54 @@ private:
         autoconf["mode_command_template"] = R"({"mode": "{{value}}"})";
 
         m_mqttDevice->sendData(MQTT_AUTOCONF_HUMIDIFIER, autoconf.dump());
+    }
+
+    void publishTargetHumidity(int targetHumidity)
+    {
+        nlohmann::json state;
+        state["humiditySetpoint"] = targetHumidity;
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+    void publishSensorHumidity(int humidity)
+    {
+        nlohmann::json state;
+        state["humidity"] = humidity;
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+    void publishMode(std::string mode)
+    {
+        nlohmann::json state;
+        state["mode"] = mode;
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+    void publishAutoMode(uint8_t enable)
+    {
+        nlohmann::json state;
+        state["auto_mode"] = enable;
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+    void publishNightMode(uint8_t enable)
+    {
+        nlohmann::json state;
+        state["night_mode"] = enable;
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+    void publishLight(bool enable)
+    {
+        nlohmann::json state;
+        state["light"] = enable ? "on" : "off";
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+    }
+
+    void publishWaterTank(bool full)
+    {
+        nlohmann::json state;
+        state["waterTank"] = full ? "full" : "empty";
+        m_mqttDevice->sendData(MQTT_STATE, state.dump());
     }
 };

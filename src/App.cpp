@@ -30,14 +30,12 @@ void App::update()
     m_humidifierUartTimer.update();
     m_otaTimer.update();
     m_stateUpdateTimer.update();
-
-    if (m_config.isMqttEnabled())
-    {
-        m_mqttHumidifier->update();
-    }
+    m_mqttHumidifier->update();
 
     if (m_shouldRestart)
     {
+        Logger::info("Reboot");
+        delay(1000);
         ESP.restart();
     }
 }
@@ -110,10 +108,7 @@ void App::setupHumidifierUart()
                     m_humidifierState[type] = value;
                     m_webPage.sendEvent("humidifierState",
                                         fmt::format(R"({{"{}": {}}})", type, value).c_str());
-                    if (m_config.isMqttEnabled())
-                    {
-                        m_mqttHumidifier->publishMqtt(type, value);
-                    }
+                    m_mqttHumidifier->publishMqtt(type, value);
                     Logger::debug("Read message: {}, value {}", type, value);
                 }
             }
@@ -131,22 +126,24 @@ void App::setupHumidifierUart()
 void App::setupMqtt()
 {
     Logger::debug("Setup Mqtt");
-    if (m_config.isMqttEnabled() == false)
-    {
-        Logger::info("Mqtt disabled");
-        return;
-    }
 
+    auto mqttDeviceId = std::to_string(ESP.getChipId());
     auto mqttDeviceName = m_config.getMqttName();
     auto mqttServer = m_config.getMqttIP();
     auto mqttPort = m_config.getMqttPort();
     auto mqttUsername = m_config.getMqttUser();
     auto mqttPassword = m_config.getMqttPasswd();
 
-    m_mqttAdp->start(std::to_string(ESP.getChipId()), mqttServer, mqttPort, mqttUsername,
-                     mqttPassword);
+    if (m_config.isMqttEnabled())
+    {
+        m_mqttAdp->start(mqttDeviceId, mqttServer, mqttPort, mqttUsername, mqttPassword);
+    }
+    else {
+        Logger::info("Mqtt disabled");
+    }
+
     m_mqttHumidifier
-        = std::make_shared<MqttHumidifier<MqttAdp>>(m_mqttAdp, mqttDeviceName, ESP.getChipId());
+        = std::make_shared<MqttHumidifier<MqttAdp>>(m_mqttAdp, mqttDeviceName, mqttDeviceId);
     m_mqttHumidifier->setRecvCallback(
         [this](const std::string &msgType, uint8_t value)
         {
@@ -179,23 +176,9 @@ void App::setupTimers()
     m_stateUpdateTimer.setCallback(
         [this]
         {
-            if (m_config.isMqttEnabled())
-            {
-                if (m_mqttHumidifier->isConnected())
-                {
-                    m_webPage.sendEvent("mqttState", "connected");
-                }
-                else
-                {
-                    m_webPage.sendEvent("mqttState", "disconnected");
-                }
-
-                m_mqttHumidifier->update();
-            }
-            else
-            {
-                m_webPage.sendEvent("mqttState", "disabled");
-            }
+            auto mqttEnabled = m_config.isMqttEnabled();
+            auto mqttState = mqttEnabled == false ? "disabled" : (m_mqttAdp->isConnected() ? "connected" : "disconnected");
+            m_webPage.sendEvent("mqttState", mqttState);
 
             m_mqttHumidifier->publishWifi(WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
                                           WiFi.RSSI());

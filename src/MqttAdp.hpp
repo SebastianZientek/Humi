@@ -25,12 +25,14 @@ public:
 private:
     constexpr static auto mqttBufferSize = 1200;
 
-    std::string m_deviceId;
-    std::string m_srv;
-    std::string m_user;
-    std::string m_pass;
-    RecvClbk m_recvClbk;
+    std::string m_deviceId{};
+    std::string m_srv{};
+    std::string m_user{};
+    std::string m_pass{};
 
-    WiFiClient m_client;
+    bool m_enabled{false};
+    RecvClbk m_recvClbk{};
+
+    WiFiClient m_client{};
     PubSubClient m_mqtt{m_client};
 };

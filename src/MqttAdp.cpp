@@ -11,11 +11,11 @@ void MqttAdp::start(const std::string &deviceId,
                     const std::string &user,
                     const std::string &pass)
 {
-    // Have to save srv address as PubSubClient keeps only pointer to data
     m_deviceId = deviceId;
     m_srv = srv;
     m_user = user;
     m_pass = pass;
+    m_enabled = true;
 
     m_mqtt.setServer(m_srv.c_str(), port);
     m_mqtt.setKeepAlive(10);
@@ -24,6 +24,11 @@ void MqttAdp::start(const std::string &deviceId,
 
 bool MqttAdp::update()
 {
+    if (!m_enabled)
+    {
+        return false;
+    }
+
     auto reconnected = false;
     if (!m_mqtt.connected())
     {
@@ -56,9 +61,8 @@ void MqttAdp::setRecvCallback(const RecvClbk &clbk)
 
 void MqttAdp::sendData(const std::string &topic, const std::string &data)
 {
-    if (!m_mqtt.connected())
+    if (!m_enabled || !m_mqtt.connected())
     {
-        // Logger::warning("MqttAdp::sendData not connected");
         return;
     }
 

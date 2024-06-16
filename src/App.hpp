@@ -6,6 +6,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 
+#include "ArduinoDevice.hpp"
 #include "Configuration.hpp"
 #include "HumidifierUart.hpp"
 #include "MessageEncoder.hpp"
@@ -45,7 +46,7 @@ private:
     Configuration<FS> m_config{LittleFS};
     bool m_shouldRestart{false};
 
-    Timer m_humidifierUartTimer;
-    Timer m_otaTimer;
-    Timer m_stateUpdateTimer;
+    Timer<ArduinoDevice> m_humidifierUartTimer;
+    Timer<ArduinoDevice> m_otaTimer;
+    Timer<ArduinoDevice> m_stateUpdateTimer;
 };

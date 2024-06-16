@@ -4,6 +4,7 @@
 
 #include <functional>
 
+template<typename Device>
 class Timer
 {
     using FunType = std::function<void()>;
@@ -17,7 +18,7 @@ public:
     void start(std::size_t timeoutMillis, bool repeat = false)
     {
         m_period = timeoutMillis;
-        m_startTime = millis();
+        m_startTime = Device::millis();
 
         m_stopped = false;
         m_repeat = repeat;
@@ -30,13 +31,14 @@ public:
     
     void update()
     {
-        if (!m_stopped && m_period + m_startTime <= millis())
+        auto currentTime = Device::millis();
+        if (!m_stopped && m_period + m_startTime <= currentTime)
         {
             m_function();
 
             if (m_repeat)
             {
-                m_startTime = millis();
+                m_startTime = currentTime;
             }
             else
             {

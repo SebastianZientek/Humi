@@ -28,6 +28,64 @@ async function send(messageType, value) {
     }
 }
 
+async function sendMqttSettings() {
+    let mqttEnabled = document.getElementById("mqtt_enabled").checked;
+    let mqttDeviceName = document.getElementById("mqtt_device_name").value;
+    let mqttUser = document.getElementById("mqtt_user").value;
+    let mqttPasswd = document.getElementById("mqtt_passwd").value;
+    let mqttIP = document.getElementById("mqtt_ip").value;
+    let mqttPort = document.getElementById("mqtt_port").value;
+
+    let message = {
+        "enabled": mqttEnabled,
+        "name": mqttDeviceName,
+        "user": mqttUser,
+        "passwd": mqttPasswd,
+        "ip": mqttIP,
+        "port": parseInt(mqttPort)
+    };
+
+    console.log("Message: ", message)
+
+    try {
+        let results = await fetch("/mqtt_config", {
+            method: "POST",
+            headers: { "Content-type": "application/json" },
+            body: JSON.stringify(message)
+        });
+
+        if (results.status != 200) {
+            showInfoModal("Communication error");
+        }
+    }
+    catch (error) {
+        showInfoModal("Communication error");
+    }
+}
+
+async function sendOtaSettings() {
+    let otaEnabled = document.getElementById("ota_enabled").checked;
+
+    let message = {
+        "enabled": otaEnabled,
+    };
+
+    try {
+        let results = await fetch("/ota_config", {
+            method: "POST",
+            headers: { "Content-type": "application/json" },
+            body: JSON.stringify(message)
+        });
+
+        if (results.status != 200) {
+            showInfoModal("Communication error");
+        }
+    }
+    catch (error) {
+        showInfoModal("Communication error");
+    }
+}
+
 function sendMessage(messageType, value) {
     send(messageType, value);
     event.target.disabled = true;
@@ -178,5 +236,38 @@ window.addEventListener('load', function () {
             resetControls(controls);
             setButtonsState(configuration, controls);
         }, false);
+
+        source.addEventListener('config', function (e) {
+            const config = JSON.parse(e.data);
+
+            let mqttEnabled = document.getElementById("mqtt_enabled");
+            let mqttName = document.getElementById("mqtt_device_name");
+            let mqttUser = document.getElementById("mqtt_user");
+            let mqttIP = document.getElementById("mqtt_ip");
+            let mqttPort = document.getElementById("mqtt_port");
+            let otaEnabled = document.getElementById("ota_enabled");
+
+            if (config.hasOwnProperty("mqttEnabled")) { mqttEnabled.checked = config["mqttEnabled"] }
+            if (config.hasOwnProperty("mqttName")) { mqttName.value = config["mqttName"] }
+            if (config.hasOwnProperty("mqttUser")) { mqttUser.value = config["mqttUser"] }
+            if (config.hasOwnProperty("mqttIP")) { mqttIP.value = config["mqttIP"] }
+            if (config.hasOwnProperty("mqttPort")) { mqttPort.value = config["mqttPort"] }
+            if (config.hasOwnProperty("otaEnabled")) { otaEnabled.checked = config["otaEnabled"] }
+
+            console.log(config);
+        }, false);
+
+        source.addEventListener('mqttState', function (e) {
+            const state = e.data;
+
+            if (state)
+            {
+                const mqtt_connection = document.getElementById("mqtt_connection");
+                mqtt_connection.value = state;
+            }
+
+            console.log("MQTT STATE: ", state);
+        }, false);
     }
+
 })

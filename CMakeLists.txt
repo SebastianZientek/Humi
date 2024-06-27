@@ -51,6 +51,8 @@ set(SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestWebPage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestMessageEncoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestHumidifierUart.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestTimer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/unittests/tests/TestMqttHumidifier.cpp
 )
 
 

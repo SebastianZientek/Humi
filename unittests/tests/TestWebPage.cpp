@@ -7,6 +7,19 @@
 #include "mocks/WebRequestMock.hpp"
 #include "mocks/WebServerMock.hpp"
 
+namespace
+{
+auto onConfigureClbkStub = [](const std::string &msgType, uint8_t value) -> bool { return false; };
+auto onInitEventClbkStub = []() {};
+auto onMqttSettingsClbkStub = [](bool enabled,
+                                 const std::string &name,
+                                 const std::string &user,
+                                 const std::string &passwd,
+                                 const std::string &ip,
+                                 int port) {};
+auto onOtaSettingsClbkStub = [](bool enabled) {};
+}  // namespace
+
 // clang-format off
 TEST_GROUP(TestWebPage)  // NOLINT
 {
@@ -30,6 +43,8 @@ TEST_GROUP(TestWebPage)  // NOLINT
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/favicon.ico");
         mock("WebServerMock").expectOneCall("onGet").withParameter("url", "/pico.min.css");
         mock("WebServerMock").expectOneCall("onPost").withParameter("url", "/set");
+        mock("WebServerMock").expectOneCall("onPost").withParameter("url", "/mqtt_config");
+        mock("WebServerMock").expectOneCall("onPost").withParameter("url", "/ota_config");
     }
 
     constexpr static auto HTML_OK = 200;
@@ -53,7 +68,8 @@ TEST(TestWebPage, ShouldGetIndexHtml)  // NOLINT
         .withParameter("code", HTML_OK)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     webServerMock->callGet("/", webRequest);
@@ -72,7 +88,8 @@ TEST(TestWebPage, ShouldGetMainJs)  // NOLINT
         .withParameter("code", HTML_OK)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     webServerMock->callGet("/main.js", webRequest);
@@ -91,7 +108,8 @@ TEST(TestWebPage, ShouldGetPicoCss)  // NOLINT
         .withParameter("code", HTML_OK)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     webServerMock->callGet("/pico.min.css", webRequest);
@@ -109,7 +127,8 @@ TEST(TestWebPage, HandleGarbageDataThatIsNotJson)  // NOLINT
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     const auto *garbage = "blahblahblah";
@@ -128,7 +147,8 @@ TEST(TestWebPage, HandleCorrectJsonContainingWrongKeys)  // NOLINT
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"wrong": "data"})";
@@ -147,7 +167,8 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButStringInsteadOfUInt) 
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type":"some_type","value": "str_instead_of_uint"})";
@@ -166,7 +187,8 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButIntInsteadOfString)  
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     const auto *wrongData = R"({"type": 123,"value": 123})";
     WebRequestMock webRequest;
@@ -185,7 +207,8 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButValueIsNegative)  // 
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     const auto *wrongData = R"({"type": "some_type","value": -123})";
     WebRequestMock webRequest;
@@ -204,7 +227,8 @@ TEST(TestWebPage, HandleCorrectJsonContainingCorrectKeysButValueIsTooBig)  // NO
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
 
-    webPage.start([](const std::string &msgType, uint8_t value) { return true; }, [] {});
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type": "some_type","value": 1000})";
@@ -229,7 +253,8 @@ TEST(TestWebPage, HandleCorrectJsonWithIncorrectMessageType)  // NOLINT
         {
             mock("Lambda").actualCall("callback");
             return false;
-        }, []{});
+        },
+        onInitEventClbkStub, onMqttSettingsClbkStub, onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type": "some_type","value": 4})";
@@ -254,7 +279,8 @@ TEST(TestWebPage, HandleCorrectMessage)  // NOLINT
         {
             mock("Lambda").actualCall("callback");
             return true;
-        }, []{});
+        },
+        onInitEventClbkStub, onMqttSettingsClbkStub, onOtaSettingsClbkStub);
 
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type": "some_type","value": 4})";

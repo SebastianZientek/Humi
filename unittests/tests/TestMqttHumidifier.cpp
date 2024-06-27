@@ -56,7 +56,6 @@ TEST(TestMqttHumidifier, UpdateWhenReconnectIsNeeded)  // NOLINT
         .expectOneCall("subscribeTopic")
         .withParameter("topic", "humidifier/humi_testId/command");
 
-    // TODO: Extract to function
     mock("MqttDeviceMock")
         .expectOneCall("sendData")
         .withParameter("topic", "homeassistant/sensor/humidifier/humi_testId_humidity/config")
@@ -284,7 +283,6 @@ TEST(TestMqttHumidifier, ShouldPublishWifiStateMsg)  // NOLINT
 {
     auto mqttDevMock = std::make_shared<MqttDeviceMock>();
     MqttHumidifier<MqttDeviceMock> mqttHumidifier{mqttDevMock, "testName", "testId"};
-
 
     nlohmann::json state;
     nlohmann::json wifi;

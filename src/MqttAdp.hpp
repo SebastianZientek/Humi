@@ -9,7 +9,7 @@
 class MqttAdp
 {
 public:
-    using RecvClbk = std::function<void(const std::string &topic, const std::string &datau)>;
+    using RecvClbk = std::function<void(const std::string &topic, const std::string &data)>;
 
     void start(const std::string &deviceId,
                const std::string &srv,

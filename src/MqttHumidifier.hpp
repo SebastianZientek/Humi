@@ -1,5 +1,3 @@
-#include <Esp.h>
-
 #include <charconv>
 #include <functional>
 #include <memory>
@@ -7,9 +5,6 @@
 #include <string>
 
 #include "Logger.hpp"
-
-#define AVAILABILITY_ONLINE "online"
-#define AVAILABILITY_OFFLINE "offline"
 
 template <typename MqttDevice>
 class MqttHumidifier
@@ -46,7 +41,7 @@ public:
         {
             m_mqttDevice->subscribeTopic(MQTT_COMMAND);
             publishAutoConfig();
-            m_mqttDevice->sendData(MQTT_AVAILABILITY, AVAILABILITY_ONLINE);
+            m_mqttDevice->sendData(MQTT_AVAILABILITY, "online");
         }
     }
 

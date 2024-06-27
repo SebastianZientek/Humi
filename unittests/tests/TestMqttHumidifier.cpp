@@ -261,3 +261,44 @@ TEST(TestMqttHumidifier, ShouldPublishWaterLvlMsg)  // NOLINT
 
     mqttHumidifier.publishMqtt("water_lvl", 1);
 }
+
+TEST(TestMqttHumidifier, ShouldPublishActiveStateMsg)  // NOLINT
+{
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    MqttHumidifier<MqttDeviceMock> mqttHumidifier{mqttDevMock, "testName", "testId"};
+
+    mock("MqttDeviceMock")
+        .expectOneCall("sendData")
+        .withParameter("data", R"({"state":"on"})")
+        .ignoreOtherParameters();
+    mqttHumidifier.publishActive(true);
+
+    mock("MqttDeviceMock")
+        .expectOneCall("sendData")
+        .withParameter("data", R"({"state":"off"})")
+        .ignoreOtherParameters();
+    mqttHumidifier.publishActive(false);
+}
+
+TEST(TestMqttHumidifier, ShouldPublishWifiStateMsg)  // NOLINT
+{
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    MqttHumidifier<MqttDeviceMock> mqttHumidifier{mqttDevMock, "testName", "testId"};
+
+
+    nlohmann::json state;
+    nlohmann::json wifi;
+
+    wifi["ssid"] = "ssid";
+    wifi["ip"] = "ip";
+    wifi["rssi"] = 123;
+
+    state["wifi"] = wifi;
+    std::string data = state.dump();
+
+    mock("MqttDeviceMock")
+        .expectOneCall("sendData")
+        .withParameter("data", data.c_str())
+        .ignoreOtherParameters();
+    mqttHumidifier.publishWifi("ssid", "ip", 123);
+}

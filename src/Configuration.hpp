@@ -3,8 +3,9 @@
 #include <nlohmann/json.hpp>
 
 #include "Logger.hpp"
+#include "CFilesystem.hpp"
 
-template <typename Filesystem>
+template <CFilesystem Filesystem>
 class Configuration
 {
 public:
@@ -15,7 +16,7 @@ public:
         OPENING_FILE_ERROR
     };
 
-    Configuration(Filesystem &filesystem)
+    explicit Configuration(Filesystem &filesystem)
         : m_fileSystem(filesystem)
     {
         m_data["mqttEnabled"] = false;

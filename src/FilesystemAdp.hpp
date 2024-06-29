@@ -9,9 +9,11 @@
 class FilesystemAdp
 {
 public:
-    FileAdp open(const std::string &path, const std::string &mode)
+    using FileType = FileAdp;
+
+    FileType open(const std::string &path, const std::string &mode)
     {
         auto file = LittleFS.open(path.c_str(), mode.c_str());
-        return FileAdp(file);
+        return FileType(file);
     }
 };

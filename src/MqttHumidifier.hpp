@@ -5,8 +5,9 @@
 #include <string>
 
 #include "Logger.hpp"
+#include "CMqttDevice.hpp"
 
-template <typename MqttDevice>
+template <CMqttDevice MqttDevice>
 class MqttHumidifier
 {
 public:

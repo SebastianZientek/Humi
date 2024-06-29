@@ -5,12 +5,8 @@
 This project offers a replacement WiFi module for the Klarta Humea humidifier, enabling users to control the device via a web interface. The project is written in C++ and utilizes the ESP8266 platform.
 
 ## Features
-
-### Impltemented
 - Web-based control interface for managing the humidifier remotely.
 - Custom PCB.
-
-### Planned
 - Update firmware by OTA (On The Air)
 - Control device over MQTT (allows integration with Home Assistant).
 

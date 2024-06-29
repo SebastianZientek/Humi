@@ -8,6 +8,13 @@ template <typename Filesystem>
 class Configuration
 {
 public:
+    enum class Status
+    {
+        OK,
+        PARSING_ERROR,
+        OPENING_FILE_ERROR
+    };
+
     Configuration(Filesystem &filesystem)
         : m_fileSystem(filesystem)
     {
@@ -21,39 +28,45 @@ public:
         m_data["otaEnabled"] = false;
     }
 
-    void load()
+    Status load()
     {
         auto file = m_fileSystem.open(m_path, "r");
         if (!file)
         {
             Logger::error("Can't load configuration");
-            return;
+            file.close();
+            return Status::OPENING_FILE_ERROR;
         }
-        std::string data = file.readString().c_str();
+        std::string data = file.readAsString().c_str();
         file.close();
 
         auto parsedData = nlohmann::json::parse(data, nullptr, false);
         if (parsedData.is_discarded())
         {
             Logger::error("Can't parse json data, {}", data);
-            return;
+            return Status::PARSING_ERROR;
         }
 
-        m_data = parsedData;
+        mergeContent(m_data, parsedData);
+
+        return Status::OK;
     }
 
-    void save()
+    Status save()
     {
         auto file = m_fileSystem.open(m_path, "w");
         if (!file)
         {
             Logger::error("Can't save configuration");
-            return;
+            file.close();
+            return Status::OPENING_FILE_ERROR;
         }
         file.print(m_data.dump().c_str());
         Logger::info("Saved {}", m_data.dump());
 
         file.close();
+
+        return Status::OK;
     }
 
     void setMqttEnabled(bool enabled)
@@ -140,8 +153,21 @@ public:
         return dump.dump();
     }
 
+    std::string dumpAll()
+    {
+        return m_data.dump();
+    }
+
 private:
     const char *m_path = "/config.json";
     Filesystem &m_fileSystem;
     nlohmann::json m_data;
+
+    void mergeContent(nlohmann::json &data, nlohmann::json toMerge)
+    {
+        for (auto it = toMerge.begin(); it != toMerge.end(); ++it)
+        {
+            data[it.key()] = it.value();
+        }
+    }
 };

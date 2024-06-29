@@ -1,5 +1,7 @@
 #pragma once
 
+#include <CppUTestExt/MockSupport.h>
+
 class DeviceMock{
 public:
     static auto millis()

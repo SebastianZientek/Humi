@@ -18,6 +18,7 @@
 #include "WebServer/EventSrcClient.hpp"
 #include "WebServer/WebRequest.hpp"
 #include "WebServer/WebServer.hpp"
+#include "FilesystemAdp.hpp"
 
 class App
 {
@@ -43,7 +44,8 @@ private:
     nlohmann::json m_humidifierState;
     std::shared_ptr<MqttAdp> m_mqttAdp{std::make_shared<MqttAdp>()};
     std::shared_ptr<MqttHumidifier<MqttAdp>> m_mqttHumidifier;
-    Configuration<FS> m_config{LittleFS};
+    FilesystemAdp m_filesystem;
+    Configuration<FilesystemAdp> m_config{m_filesystem};
     bool m_shouldRestart{false};
 
     Timer<ArduinoDevice> m_humidifierUartTimer;

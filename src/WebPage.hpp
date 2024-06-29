@@ -16,6 +16,7 @@ class WebPage
 
 public:
     using ConfigureClbk = std::function<bool(const std::string &msgType, uint8_t value)>;
+    using InitEventClbk = std::function<void()>;
     using MqttSettingsClbk = std::function<void(bool enabled,
                                                 const std::string &name,
                                                 const std::string &user,
@@ -23,7 +24,6 @@ public:
                                                 const std::string &ip,
                                                 int port)>;
     using OtaSettingsClbk = std::function<void(bool enabled)>;
-    using InitEventClbk = std::function<void()>;
 
     explicit WebPage(const std::shared_ptr<WebServer> &webServer)
         : m_server(webServer)
@@ -81,7 +81,6 @@ public:
                          {
                              Logger::debug("post /mqtt_config {}", body);
                              mqttSettings(request, body);
-                             request.send(HTML_OK);
                          });
 
         m_server->onPost("/ota_config",
@@ -89,7 +88,6 @@ public:
                          {
                              Logger::debug("post /ota_config {}", body);
                              otaSettings(request, body);
-                             request.send(HTML_OK);
                          });
 
         m_server->setupEventsSource("/events",
@@ -182,8 +180,8 @@ private:
             return;
         }
 
-        if (!message.contains("enabled") || !message.contains("name")  || !message.contains("user") || !message.contains("passwd")
-            || !message.contains("ip") || !message.contains("port"))
+        if (!message.contains("enabled") || !message.contains("name") || !message.contains("user")
+            || !message.contains("passwd") || !message.contains("ip") || !message.contains("port"))
         {
             Logger::error("Can't parse json data, {}", body);
             request.send(HTML_BAD_REQ);
@@ -198,6 +196,7 @@ private:
         int mqttPort = message["port"];
 
         m_onMqttSettingsClbk(enabled, name, user, passwd, ip, mqttPort);
+        request.send(HTML_OK);
     }
 
     void otaSettings(WebServer::Request &request, const std::string &body)
@@ -219,5 +218,6 @@ private:
 
         bool enabled = message["enabled"];
         m_onOtaSettingsClbk(enabled);
+        request.send(HTML_OK);
     }
 };

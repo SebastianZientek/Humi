@@ -30,6 +30,7 @@ private:
     void setupPeripherals();
     void setupWifi();
     void setupWebPage();
+    void setupDefaultState();
     void setupHumidifierUart();
     void setupMqtt();
     void setupTimers();

@@ -167,7 +167,6 @@ void App::setupMqtt()
     // send initial data
     for (auto it = m_humidifierState.begin(); it != m_humidifierState.end(); ++it)
     {
-        // Logger::debug("MQTT Initial send: {}, value {}", it.key(), it.value());
         std::string key = it.key();
         uint8_t value = it.value();
         Logger::debug("MQTT Initial send: {} = {}", key, value);

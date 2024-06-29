@@ -246,12 +246,12 @@ TEST(TestWebPage, HandleCorrectJsonWithIncorrectMessageType)  // NOLINT
         .expectOneCall("send")
         .withParameter("code", HTML_BAD_REQ)
         .ignoreOtherParameters();
-    mock("Lambda").expectOneCall("callback");
+    mock("Lambda").expectOneCall("onConfigureClbk");
 
     webPage.start(
         [](const std::string &msgType, uint8_t value)
         {
-            mock("Lambda").actualCall("callback");
+            mock("Lambda").actualCall("onConfigureClbk");
             return false;
         },
         onInitEventClbkStub, onMqttSettingsClbkStub, onOtaSettingsClbkStub);
@@ -272,12 +272,12 @@ TEST(TestWebPage, HandleCorrectMessage)  // NOLINT
         .expectOneCall("send")
         .withParameter("code", HTML_OK)
         .ignoreOtherParameters();
-    mock("Lambda").expectOneCall("callback");
+    mock("Lambda").expectOneCall("onConfigureClbk");
 
     webPage.start(
         [](const std::string &msgType, uint8_t value)
         {
-            mock("Lambda").actualCall("callback");
+            mock("Lambda").actualCall("onConfigureClbk");
             return true;
         },
         onInitEventClbkStub, onMqttSettingsClbkStub, onOtaSettingsClbkStub);
@@ -285,4 +285,165 @@ TEST(TestWebPage, HandleCorrectMessage)  // NOLINT
     WebRequestMock webRequest;
     const auto *wrongData = R"({"type": "some_type","value": 4})";
     webServerMock->callPostWithBody("/set", webRequest, wrongData);
+}
+
+TEST(TestWebPage, ShouldHandleCorrectMqttSettings)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebServerMock").expectOneCall("setupEventsSource").ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_OK)
+        .ignoreOtherParameters();
+    mock("Lambda").expectOneCall("onMqttSetting");
+
+    auto onMqttSettingMock = [](bool enabled, const std::string &name, const std::string &user,
+                                const std::string &passwd, const std::string &ip, int port)
+    { mock("Lambda").actualCall("onMqttSetting"); };
+
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingMock,
+                  onOtaSettingsClbkStub);
+
+    WebRequestMock webRequest;
+
+    nlohmann::json message;
+    message["enabled"] = true;
+    message["name"] = "Test";
+    message["user"] = "Test";
+    message["passwd"] = "Test";
+    message["ip"] = "123.234.345.456";
+    message["port"] = 123;
+    std::string data = message.dump();
+
+    webServerMock->callPostWithBody("/mqtt_config", webRequest, data);
+}
+
+TEST(TestWebPage, ShouldRejectMqttSettingsWithWrongJsonData)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebServerMock").expectOneCall("setupEventsSource").ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+    mock("Lambda").expectNoCall("onMqttSetting");
+
+    auto onMqttSettingMock = [](bool enabled, const std::string &name, const std::string &user,
+                                const std::string &passwd, const std::string &ip, int port)
+    { mock("Lambda").actualCall("onMqttSetting"); };
+
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingMock,
+                  onOtaSettingsClbkStub);
+
+    WebRequestMock webRequest;
+    webServerMock->callPostWithBody("/mqtt_config", webRequest, "incorrect json;");
+}
+
+TEST(TestWebPage, ShouldRejectMqttSettingsWithMissingFields)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebServerMock").expectOneCall("setupEventsSource").ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+    mock("Lambda").expectNoCall("onMqttSetting");
+
+    auto onMqttSettingMock = [](bool enabled, const std::string &name, const std::string &user,
+                                const std::string &passwd, const std::string &ip, int port)
+    { mock("Lambda").actualCall("onMqttSetting"); };
+
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingMock,
+                  onOtaSettingsClbkStub);
+
+    WebRequestMock webRequest;
+
+    nlohmann::json message;
+    message["enabled"] = true;
+    message["name"] = "Test";
+    std::string data = message.dump();
+
+    webServerMock->callPostWithBody("/mqtt_config", webRequest, data);
+}
+
+TEST(TestWebPage, ShouldHandleCorrectOtaSettings)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebServerMock").expectOneCall("setupEventsSource").ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_OK)
+        .ignoreOtherParameters();
+    mock("Lambda").expectOneCall("onOtaSettings");
+
+    auto onOtaSettingsClbkMock = [](bool enabled) { mock("Lambda").actualCall("onOtaSettings"); };
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkMock);
+
+    WebRequestMock webRequest;
+
+    nlohmann::json message;
+    message["enabled"] = true;
+    std::string data = message.dump();
+
+    webServerMock->callPostWithBody("/ota_config", webRequest, data);
+}
+
+TEST(TestWebPage, ShouldRejectOtaSettingsWithWrongJsonData)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebServerMock").expectOneCall("setupEventsSource").ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+    mock("Lambda").expectNoCall("onMqttSetting");
+
+    auto onOtaSettingsClbkMock = [](bool enabled) { mock("Lambda").actualCall("onOtaSettings"); };
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkMock);
+
+    WebRequestMock webRequest;
+
+    webServerMock->callPostWithBody("/ota_config", webRequest, "wrong json data");
+}
+
+TEST(TestWebPage, ShouldRejectOtaSettingsWithMissingFields)  // NOLINT
+{
+    WebPage<WebServer, ResourcesMock> webPage(webServerMock);
+
+    mockOnGetAndOnPostCalls();
+    mock("WebServerMock").expectOneCall("start");
+    mock("WebServerMock").expectOneCall("setupEventsSource").ignoreOtherParameters();
+    mock("WebRequestMock")
+        .expectOneCall("send")
+        .withParameter("code", HTML_BAD_REQ)
+        .ignoreOtherParameters();
+    mock("Lambda").expectNoCall("onMqttSetting");
+
+    auto onOtaSettingsClbkMock = [](bool enabled) { mock("Lambda").actualCall("onOtaSettings"); };
+    webPage.start(onConfigureClbkStub, onInitEventClbkStub, onMqttSettingsClbkStub,
+                  onOtaSettingsClbkMock);
+
+    WebRequestMock webRequest;
+
+    nlohmann::json message;
+    std::string data = message.dump();
+
+    webServerMock->callPostWithBody("/ota_config", webRequest, data);
 }

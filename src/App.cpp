@@ -14,6 +14,7 @@ void App::init()
     m_config.load();
     setupWifi();
     setupWebPage();
+    setupDefaultState();
     setupHumidifierUart();
     setupMqtt();
 
@@ -95,6 +96,15 @@ void App::setupWebPage()
     m_webPage.start(onWebMsgClbk, onWebEventClbk, onMqttConfigClbk, onOtaConfigClbk);
 }
 
+void App::setupDefaultState()
+{
+    m_humidifierState["humidification_level"] = 1;
+    m_humidifierState["power"] = 1;
+    m_humidifierState["auto_mode"] = 0;
+    m_humidifierState["night_mode"] = 0;
+    m_humidifierState["light"] = 0;
+}
+
 void App::setupHumidifierUart()
 {
     Logger::debug("Setup HumidifierUart");
@@ -152,6 +162,16 @@ void App::setupMqtt()
         });
 
     m_mqttHumidifier->publishActive(true);
+
+
+    // send initial data
+    for (auto it = m_humidifierState.begin(); it != m_humidifierState.end(); ++it)
+    {
+        std::string key = it.key();
+        uint8_t value = it.value();
+        Logger::debug("MQTT Initial send: {} = {}", key, value);
+        m_mqttHumidifier->publishMqtt(key, value);
+    }
 }
 
 void App::setupTimers()

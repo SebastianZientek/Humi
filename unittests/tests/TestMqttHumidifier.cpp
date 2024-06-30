@@ -279,7 +279,7 @@ TEST(TestMqttHumidifier, ShouldPublishActiveStateMsg)  // NOLINT
     mqttHumidifier.publishActive(false);
 }
 
-TEST(TestMqttHumidifier, ShouldPublishWifiStateMsg)  // NOLINT
+TEST(TestMqttHumidifier, ShouldPublishStateMsg)  // NOLINT
 {
     auto mqttDevMock = std::make_shared<MqttDeviceMock>();
     MqttHumidifier<MqttDeviceMock> mqttHumidifier{mqttDevMock, "testName", "testId"};
@@ -292,11 +292,15 @@ TEST(TestMqttHumidifier, ShouldPublishWifiStateMsg)  // NOLINT
     wifi["rssi"] = 123;
 
     state["wifi"] = wifi;
+    state["waterTank"] = "full";
+    state["state"] = "on";
     std::string data = state.dump();
+    bool isWaterFull = true;
+    bool isStateOn = true;
 
     mock("MqttDeviceMock")
         .expectOneCall("sendData")
         .withParameter("data", data.c_str())
         .ignoreOtherParameters();
-    mqttHumidifier.publishWifi("ssid", "ip", 123);
+    mqttHumidifier.publishState("ssid", "ip", 123, isWaterFull, isStateOn);
 }

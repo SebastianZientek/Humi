@@ -9,6 +9,12 @@
 
 void App::init()
 {
+    if (isEmergencyFlashingModeAfterCrash())
+    {
+        setupEmergencyFlashingOverOTA();
+        return;
+    }
+
     setupPeripherals();
 
     m_config.load();
@@ -28,6 +34,13 @@ void App::init()
 
 void App::update()
 {
+    if (isEmergencyFlashingModeAfterCrash())
+    {
+        ArduinoOTA.handle();
+        delay(1000);
+        return;
+    }
+
     m_humidifierUartTimer.update();
     m_otaTimer.update();
     m_stateUpdateTimer.update();
@@ -148,7 +161,8 @@ void App::setupMqtt()
     {
         m_mqttAdp->start(mqttDeviceId, mqttServer, mqttPort, mqttUsername, mqttPassword);
     }
-    else {
+    else
+    {
         Logger::info("Mqtt disabled");
     }
 
@@ -162,7 +176,6 @@ void App::setupMqtt()
         });
 
     m_mqttHumidifier->publishActive(true);
-
 
     // send initial data
     for (auto it = m_humidifierState.begin(); it != m_humidifierState.end(); ++it)
@@ -197,7 +210,9 @@ void App::setupTimers()
         [this]
         {
             auto mqttEnabled = m_config.isMqttEnabled();
-            auto mqttState = mqttEnabled == false ? "disabled" : (m_mqttAdp->isConnected() ? "connected" : "disconnected");
+            auto mqttState = mqttEnabled == false
+                                 ? "disabled"
+                                 : (m_mqttAdp->isConnected() ? "connected" : "disconnected");
             m_webPage.sendEvent("mqttState", mqttState);
 
             m_mqttHumidifier->publishWifi(WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
@@ -205,4 +220,24 @@ void App::setupTimers()
         });
 
     m_stateUpdateTimer.start(10000, true);
+}
+
+void App::setupEmergencyFlashingOverOTA()
+{
+    auto resetReason = ESP.getResetInfoPtr()->reason;
+
+    Serial1.begin(m_serialSpeed);
+    Serial1.println("\nEMERGENCY FLASHING MODE");
+    Serial1.print("Reset reason: ");
+    Serial1.println(resetReason);
+
+    WifiConfigurator::connectToWifi();
+    ArduinoOTA.begin();
+}
+
+bool App::isEmergencyFlashingModeAfterCrash()
+{
+    auto resetReason = ESP.getResetInfoPtr()->reason;
+    return resetReason == REASON_EXCEPTION_RST || resetReason == REASON_WDT_RST
+           || resetReason == REASON_SOFT_WDT_RST;
 }

@@ -35,6 +35,9 @@ private:
     void setupMqtt();
     void setupTimers();
 
+    bool isEmergencyFlashingModeAfterCrash();
+    void setupEmergencyFlashingOverOTA();
+
     using WebSrv = WebServer<WebRequest, EventSrcClient>;
     using MainWebPage = WebPage<WebSrv, Resources>;
     constexpr static auto m_serialSpeed = 9600;

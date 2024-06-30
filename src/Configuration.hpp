@@ -70,6 +70,11 @@ public:
         return Status::OK;
     }
 
+    void removeConfiguration()
+    {
+        m_fileSystem.remove(m_path);
+    }
+
     void setMqttEnabled(bool enabled)
     {
         m_data["mqttEnabled"] = enabled;

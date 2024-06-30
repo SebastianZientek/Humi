@@ -4,8 +4,8 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-#include "Logger.hpp"
 #include "CMqttDevice.hpp"
+#include "Logger.hpp"
 
 template <CMqttDevice MqttDevice>
 class MqttHumidifier
@@ -146,7 +146,11 @@ public:
         m_mqttDevice->sendData(MQTT_STATE, state.dump());
     }
 
-    void publishWifi(const std::string &ssid, const std::string &ip, int8_t rssi)
+    void publishState(const std::string &ssid,
+                      const std::string &ip,
+                      int8_t rssi,
+                      bool waterTankFull,
+                      bool isPowerOn)
     {
         nlohmann::json state;
         nlohmann::json wifi;
@@ -156,6 +160,9 @@ public:
         wifi["rssi"] = rssi;
 
         state["wifi"] = wifi;
+        state["waterTank"] = waterTankFull ? "full" : "empty";
+        state["state"] = isPowerOn ? "on" : "off";
+
         m_mqttDevice->sendData(MQTT_STATE, state.dump());
     }
 

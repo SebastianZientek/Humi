@@ -66,19 +66,18 @@ void App::setupPeripherals()
     }
 
 #ifdef LOGGER_ERR
-constexpr auto logLevel = Logger::LogLevel::ERROR;
+    constexpr auto logLevel = Logger::LogLevel::ERROR;
 #elif LOGGER_WRN
-constexpr auto logLevel = Logger::LogLevel::WARNING;
+    constexpr auto logLevel = Logger::LogLevel::WARNING;
 #elif LOGGER_INF
-constexpr auto logLevel = Logger::LogLevel::INFO;
+    constexpr auto logLevel = Logger::LogLevel::INFO;
 #elif LOGGER_DBG
-constexpr auto logLevel = Logger::LogLevel::DEBUG;
+    constexpr auto logLevel = Logger::LogLevel::DEBUG;
 #else
-constexpr auto logLevel = Logger::LogLevel::INFO;
+    constexpr auto logLevel = Logger::LogLevel::INFO;
 #endif
 
-Logger::setLogLevel(logLevel);
-
+    Logger::setLogLevel(logLevel);
 }
 
 void App::setupWifi()
@@ -127,6 +126,7 @@ void App::setupWebPage()
 void App::setupDefaultState()
 {
     m_humidifierState["humidification_level"] = 1;
+    m_humidifierState["water_lvl"] = 1;
     m_humidifierState["power"] = 1;
     m_humidifierState["auto_mode"] = 0;
     m_humidifierState["night_mode"] = 0;
@@ -230,8 +230,10 @@ void App::setupTimers()
                                  : (m_mqttAdp->isConnected() ? "connected" : "disconnected");
             m_webPage.sendEvent("mqttState", mqttState);
 
-            m_mqttHumidifier->publishWifi(WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
-                                          WiFi.RSSI());
+            auto waterTankFull = m_humidifierState["water_lvl"] == 1;
+            auto isStateOn = m_humidifierState["power"] == 1;
+            m_mqttHumidifier->publishState(WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
+                                           WiFi.RSSI(), waterTankFull, isStateOn);
         });
 
     m_stateUpdateTimer.start(10000, true);

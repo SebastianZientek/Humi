@@ -64,6 +64,21 @@ void App::setupPeripherals()
     {
         Logger::error("Can't initialize LittleFS");
     }
+
+#ifdef LOGGER_ERR
+constexpr auto logLevel = Logger::LogLevel::ERROR;
+#elif LOGGER_WRN
+constexpr auto logLevel = Logger::LogLevel::WARNING;
+#elif LOGGER_INF
+constexpr auto logLevel = Logger::LogLevel::INFO;
+#elif LOGGER_DBG
+constexpr auto logLevel = Logger::LogLevel::DEBUG;
+#else
+constexpr auto logLevel = Logger::LogLevel::INFO;
+#endif
+
+Logger::setLogLevel(logLevel);
+
 }
 
 void App::setupWifi()

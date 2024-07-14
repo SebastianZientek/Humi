@@ -146,7 +146,7 @@ void App::setupHumidifierUart()
                     m_humidifierState[type] = value;
                     m_webPage.sendEvent("humidifierState",
                                         fmt::format(R"({{"{}": {}}})", type, value).c_str());
-                    m_mqttHumidifier->publishMqtt(type, value);
+                    m_mqttHumidifier->publish(type, value);
                     Logger::debug("Read message: {}, value {}", type, value);
                 }
             }
@@ -172,17 +172,18 @@ void App::setupMqtt()
     auto mqttUsername = m_config.getMqttUser();
     auto mqttPassword = m_config.getMqttPasswd();
 
+    m_mqttHumidifier = std::make_shared<MqttHumidifier<MqttAdp>>(
+        m_mqttAdp, mqttDeviceName, mqttDeviceId, mqttServer, mqttPort, mqttUsername, mqttPassword);
+
     if (m_config.isMqttEnabled())
     {
-        m_mqttAdp->start(mqttDeviceId, mqttServer, mqttPort, mqttUsername, mqttPassword);
+        m_mqttHumidifier->start();
     }
     else
     {
         Logger::info("Mqtt disabled");
     }
 
-    m_mqttHumidifier
-        = std::make_shared<MqttHumidifier<MqttAdp>>(m_mqttAdp, mqttDeviceName, mqttDeviceId);
     m_mqttHumidifier->setRecvCallback(
         [this](const std::string &msgType, uint8_t value)
         {
@@ -190,15 +191,13 @@ void App::setupMqtt()
             m_humidifierUart.sendMessage(msgType, value);
         });
 
-    m_mqttHumidifier->publishActive(true);
-
     // send initial data
     for (auto it = m_humidifierState.begin(); it != m_humidifierState.end(); ++it)
     {
         std::string key = it.key();
         uint8_t value = it.value();
         Logger::debug("MQTT Initial send: {} = {}", key, value);
-        m_mqttHumidifier->publishMqtt(key, value);
+        m_mqttHumidifier->publish(key, value);
     }
 }
 
@@ -229,11 +228,8 @@ void App::setupTimers()
                                  ? "disabled"
                                  : (m_mqttAdp->isConnected() ? "connected" : "disconnected");
             m_webPage.sendEvent("mqttState", mqttState);
-
-            auto waterTankFull = m_humidifierState["water_lvl"] == 1;
-            auto isStateOn = m_humidifierState["power"] == 1;
-            m_mqttHumidifier->publishState(WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
-                                           WiFi.RSSI(), waterTankFull, isStateOn);
+            m_mqttHumidifier->publishWifi(WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
+                                          WiFi.RSSI());
         });
 
     m_stateUpdateTimer.start(10000, true);

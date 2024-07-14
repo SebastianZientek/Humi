@@ -129,7 +129,7 @@ TEST(TestMqttHumidifier, UpdateWhenReconnectIsNeeded)  // NOLINT
     mqttHumidifier.update();
 }
 
-// // /********** Receiving mqtt tests **********/
+/********** Receiving mqtt tests **********/
 
 TEST(TestMqttHumidifier, ShouldDiscardMsgIfIncomingDataIsWrong)
 {
@@ -216,7 +216,7 @@ TEST(TestMqttHumidifier, ShouldHandleLightMsg)
     mqttDevMock->callRecvClbk("someTopic", R"({"light": 1})");
 }
 
-// /********** Publishing mqtt tests **********/
+/********** Publishing mqtt tests **********/
 
 TEST(TestMqttHumidifier, ShouldPublishPowerMsg)  // NOLINT
 {

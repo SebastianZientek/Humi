@@ -37,8 +37,6 @@ bool MqttAdp::update()
     auto reconnected = false;
     if (!m_mqtt.connected())
     {
-        // boolean connect(const char* id, const char* user, const char* pass, const char*
-        // willTopic, uint8_t willQos, boolean willRetain, const char* willMessage);
         reconnected = m_mqtt.connect(m_deviceId.c_str(), m_user.c_str(), m_pass.c_str(),
                                      m_lastWillTopic.c_str(), 1, true, m_lastWillMsg.c_str());
     }

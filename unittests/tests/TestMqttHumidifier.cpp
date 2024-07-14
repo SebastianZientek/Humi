@@ -19,15 +19,14 @@ TEST_GROUP(TestMqttHumidifier)  // NOLINT
 };
 // clang-format on
 
-auto createMqttHumidifierMock(auto &mqttDevMock)
+auto createMqttHumidifierMock(auto mqttDevMock)
 {
     return MqttHumidifier<MqttDeviceMock>{mqttDevMock, "testName", "testId", "srv",
                                           123,         "user",     "pass"};
 }
 
-auto getMqttHumAndDevicePreparedForHandleMsg()
+auto getMqttHumAndDevicePreparedForHandleMsg(auto mqttDevMock)
 {
-    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
     auto mqttHumidifier = createMqttHumidifierMock(mqttDevMock);
 
     mqttHumidifier.setRecvCallback(
@@ -39,7 +38,7 @@ auto getMqttHumAndDevicePreparedForHandleMsg()
                 .withParameter("value", value);
         });
 
-    return std::make_pair(mqttHumidifier, mqttDevMock);
+    return mqttHumidifier;
 }
 
 TEST(TestMqttHumidifier, UpdateWhenReconnectIsNotNeeded)  // NOLINT
@@ -101,7 +100,11 @@ TEST(TestMqttHumidifier, UpdateWhenReconnectIsNeeded)  // NOLINT
         .ignoreOtherParameters();
     mock("MqttDeviceMock")
         .expectOneCall("sendData")
-        .withParameter("topic", "humi/testId/humidification_level")
+        .withParameter("topic", "humi/testId/humidification_level/state")
+        .ignoreOtherParameters();
+    mock("MqttDeviceMock")
+        .expectOneCall("sendData")
+        .withParameter("topic", "humi/testId/humidification_power/state")
         .ignoreOtherParameters();
     mock("MqttDeviceMock")
         .expectOneCall("sendData")
@@ -126,11 +129,12 @@ TEST(TestMqttHumidifier, UpdateWhenReconnectIsNeeded)  // NOLINT
     mqttHumidifier.update();
 }
 
-// /********** Receiving mqtt tests **********/
+// // /********** Receiving mqtt tests **********/
 
 TEST(TestMqttHumidifier, ShouldDiscardMsgIfIncomingDataIsWrong)
 {
-    auto [mqttHumidifier, mqttDevMock] = getMqttHumAndDevicePreparedForHandleMsg();
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    auto mqttHumidifier = getMqttHumAndDevicePreparedForHandleMsg(mqttDevMock);
 
     mock("Lambda").expectNoCall("callback");
     mqttDevMock->callRecvClbk("wrongTopic", "not json");
@@ -138,7 +142,8 @@ TEST(TestMqttHumidifier, ShouldDiscardMsgIfIncomingDataIsWrong)
 
 TEST(TestMqttHumidifier, ShouldHandleHumiditySetPointMsg)
 {
-    auto [mqttHumidifier, mqttDevMock] = getMqttHumAndDevicePreparedForHandleMsg();
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    auto mqttHumidifier = getMqttHumAndDevicePreparedForHandleMsg(mqttDevMock);
 
     mock("Lambda")
         .expectOneCall("callback")
@@ -149,7 +154,8 @@ TEST(TestMqttHumidifier, ShouldHandleHumiditySetPointMsg)
 
 TEST(TestMqttHumidifier, ShouldHandleStateMsg)
 {
-    auto [mqttHumidifier, mqttDevMock] = getMqttHumAndDevicePreparedForHandleMsg();
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    auto mqttHumidifier = getMqttHumAndDevicePreparedForHandleMsg(mqttDevMock);
 
     mock("Lambda")
         .expectOneCall("callback")
@@ -160,18 +166,24 @@ TEST(TestMqttHumidifier, ShouldHandleStateMsg)
 
 TEST(TestMqttHumidifier, ShouldHandleModeMsg)
 {
-    auto [mqttHumidifier, mqttDevMock] = getMqttHumAndDevicePreparedForHandleMsg();
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    auto mqttHumidifier = getMqttHumAndDevicePreparedForHandleMsg(mqttDevMock);
 
     mock("Lambda")
         .expectOneCall("callback")
         .withParameter("msgType", "humidification_power")
         .withParameter("value", 1);
+    mock("MqttDeviceMock")
+        .expectOneCall("sendData")
+        .withParameter("topic", "humi/testId/humidification_level/state")
+        .ignoreOtherParameters();
     mqttDevMock->callRecvClbk("someTopic", R"({"humidification_power": "Normal"})");
 }
 
 TEST(TestMqttHumidifier, ShouldHandleAutoModeMsg)
 {
-    auto [mqttHumidifier, mqttDevMock] = getMqttHumAndDevicePreparedForHandleMsg();
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    auto mqttHumidifier = getMqttHumAndDevicePreparedForHandleMsg(mqttDevMock);
 
     mock("Lambda")
         .expectOneCall("callback")
@@ -182,7 +194,8 @@ TEST(TestMqttHumidifier, ShouldHandleAutoModeMsg)
 
 TEST(TestMqttHumidifier, ShouldHandleNightModeMsg)
 {
-    auto [mqttHumidifier, mqttDevMock] = getMqttHumAndDevicePreparedForHandleMsg();
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    auto mqttHumidifier = getMqttHumAndDevicePreparedForHandleMsg(mqttDevMock);
 
     mock("Lambda")
         .expectOneCall("callback")
@@ -193,7 +206,8 @@ TEST(TestMqttHumidifier, ShouldHandleNightModeMsg)
 
 TEST(TestMqttHumidifier, ShouldHandleLightMsg)
 {
-    auto [mqttHumidifier, mqttDevMock] = getMqttHumAndDevicePreparedForHandleMsg();
+    auto mqttDevMock = std::make_shared<MqttDeviceMock>();
+    auto mqttHumidifier = getMqttHumAndDevicePreparedForHandleMsg(mqttDevMock);
 
     mock("Lambda")
         .expectOneCall("callback")
@@ -237,7 +251,13 @@ TEST(TestMqttHumidifier, ShouldPublishHumidificationPowerMsg)  // NOLINT
 
     mock("MqttDeviceMock")
         .expectOneCall("sendData")
+        .withParameter("topic", "humi/testId/humidification_power/state")
         .withParameter("data", "Normal")
+        .ignoreOtherParameters();
+    mock("MqttDeviceMock")
+        .expectOneCall("sendData")
+        .withParameter("topic", "humi/testId/humidification_level/state")
+        .withParameter("data", "None")
         .ignoreOtherParameters();
 
     mqttHumidifier.publish("humidification_power", 1);

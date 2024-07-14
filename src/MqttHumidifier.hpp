@@ -90,12 +90,18 @@ public:
                 {
                     std::string mode = message["humidification_power"];
                     static std::map<std::string, int> modeToValue{
-                        {"Low", 0}, {"Normal", 1}, {"High", 2}, {"Turbo", 3}};
+                        {"Low", 0}, {"Normal", 1}, {"High", 2}, {"Turbo", 3}, {"Target", 4}};
                     uint8_t value = modeToValue[mode];
 
                     if (value >= 0 && value < 4)
                     {
                         clbk("humidification_power", value);
+                        m_mqttDevice->sendData(
+                            fmt::format("{}/humidification_level/state", TOPIC_COMMON), "None");
+                    }
+                    else if (value == 4)
+                    {
+                        clbk("humidification_level", 2);
                     }
                 }
                 else if (message.contains("light"))
@@ -131,17 +137,21 @@ public:
             // To keep value between 40% and 75% (value = 1 is 40%)
             auto targetHumidity = (value - 1) * humidificationStep + minHumidification;
 
-            m_mqttDevice->sendData(fmt::format("{}/humidification_level", TOPIC_COMMON),
+            m_mqttDevice->sendData(fmt::format("{}/humidification_level/state", TOPIC_COMMON),
                                    std::to_string(targetHumidity));
+            m_mqttDevice->sendData(fmt::format("{}/humidification_power/state", TOPIC_COMMON),
+                                   "Target");
         }
         else if (type == "humidification_power")
         {
-            static std::array<std::string, 4> mode{"Low", "Normal", "High", "Turbo"};
+            static std::array<std::string, 5> mode{"Low", "Normal", "High", "Turbo", "Target"};
 
-            if (value >= 0 && value < 4)
+            if (value >= 0 && value < 5)
             {
                 m_mqttDevice->sendData(fmt::format("{}/humidification_power/state", TOPIC_COMMON),
                                        mode[value]);
+                m_mqttDevice->sendData(fmt::format("{}/humidification_level/state", TOPIC_COMMON),
+                                       "None");
             }
         }
         else if (type == "humidity_lvl")
@@ -201,8 +211,9 @@ private:
     {
         m_mqttDevice->sendData(fmt::format("{}/availability", TOPIC_COMMON), "online");
         m_mqttDevice->sendData(fmt::format("{}/power/state", TOPIC_COMMON), "on");
-        m_mqttDevice->sendData(fmt::format("{}/humidification_level", TOPIC_COMMON), "57");
-        m_mqttDevice->sendData(fmt::format("{}/humidity/state", TOPIC_COMMON), "51");
+        m_mqttDevice->sendData(fmt::format("{}/humidification_level/state", TOPIC_COMMON), "None");
+        m_mqttDevice->sendData(fmt::format("{}/humidification_power/state", TOPIC_COMMON), "None");
+        m_mqttDevice->sendData(fmt::format("{}/humidity/state", TOPIC_COMMON), "Unknown");
         m_mqttDevice->sendData(fmt::format("{}/waterTank/state", TOPIC_COMMON), "full");
         m_mqttDevice->sendData(fmt::format("{}/light/state", TOPIC_COMMON), "0");
         m_mqttDevice->sendData(fmt::format("{}/auto_mode/state", TOPIC_COMMON), "0");
@@ -227,28 +238,29 @@ private:
 
     void sendAutoConfigHumidifier(const nlohmann::json &device)
     {
-        nlohmann::json humidifierAutoConfig = {
-            {"device", device},
-            {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
-            {"name", "Humidifier"},
-            {"unique_id", fmt::format("humidifier_{}", m_deviceId)},
-            {"device_class", "humidifier"},
-            {"max_humidity", 75},
-            {"min_humidity", 40},
-            {"payload_off", "off"},
-            {"payload_on", "on"},
-            {"state_topic", fmt::format("{}/power/state", TOPIC_COMMON)},
-            {"command_topic", TOPIC_COMMAND},
-            {"command_template", R"({"power": "{{value}}"})"},
-            {"modes", {"Low", "Normal", "High", "Turbo"}},
-            {"target_humidity_state_topic", fmt::format("{}/humidification_level", TOPIC_COMMON)},
-            {"target_humidity_state_template", "{{value | int}}"},
-            {"target_humidity_command_topic", TOPIC_COMMAND},
-            {"target_humidity_command_template", R"({"humidification_level": {{value}}})"},
-            {"mode_state_topic", fmt::format("{}/humidification_power/state", TOPIC_COMMON)},
-            {"mode_state_template", "{{value}}"},
-            {"mode_command_topic", TOPIC_COMMAND},
-            {"mode_command_template", R"({"humidification_power": "{{value}}"})"}};
+        nlohmann::json humidifierAutoConfig
+            = {{"device", device},
+               {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+               {"name", "Humidifier"},
+               {"unique_id", fmt::format("humidifier_{}", m_deviceId)},
+               {"device_class", "humidifier"},
+               {"max_humidity", 75},
+               {"min_humidity", 40},
+               {"payload_off", "off"},
+               {"payload_on", "on"},
+               {"state_topic", fmt::format("{}/power/state", TOPIC_COMMON)},
+               {"command_topic", TOPIC_COMMAND},
+               {"command_template", R"({"power": "{{value}}"})"},
+               {"modes", {"Low", "Normal", "High", "Turbo", "Target"}},
+               {"target_humidity_state_topic",
+                fmt::format("{}/humidification_level/state", TOPIC_COMMON)},
+               {"target_humidity_state_template", "{{value}}"},
+               {"target_humidity_command_topic", TOPIC_COMMAND},
+               {"target_humidity_command_template", R"({"humidification_level": {{value}}})"},
+               {"mode_state_topic", fmt::format("{}/humidification_power/state", TOPIC_COMMON)},
+               {"mode_state_template", "{{value}}"},
+               {"mode_command_topic", TOPIC_COMMAND},
+               {"mode_command_template", R"({"humidification_power": "{{value}}"})"}};
 
         m_mqttDevice->sendData(TOPIC_AUTOCONFIG_HUMIDIFIER, humidifierAutoConfig.dump());
     }
@@ -262,7 +274,7 @@ private:
                {"name", "Humidity"},
                {"device_class", "humidity"},
                {"unit_of_measurement", "%"},
-               {"value_template", "{{value | int}}"},
+               {"value_template", "{{value}}"},
                {"unique_id", fmt::format("humidity_{}", m_deviceId)}};
 
         m_mqttDevice->sendData(TOPIC_AUTOCONFIG_HUMIDITY, humidityAutoconfig.dump());

@@ -9,7 +9,9 @@ void MqttAdp::start(const std::string &deviceId,
                     const std::string &srv,
                     uint16_t port,
                     const std::string &user,
-                    const std::string &pass)
+                    const std::string &pass,
+                    const std::string &lastWillTopic,
+                    const std::string &lastWillMsg)
 {
     m_deviceId = deviceId;
     m_srv = srv;
@@ -20,6 +22,9 @@ void MqttAdp::start(const std::string &deviceId,
     m_mqtt.setServer(m_srv.c_str(), port);
     m_mqtt.setKeepAlive(10);
     m_mqtt.setBufferSize(mqttBufferSize);
+
+    m_lastWillTopic = lastWillTopic;
+    m_lastWillMsg = lastWillMsg;
 }
 
 bool MqttAdp::update()
@@ -32,7 +37,10 @@ bool MqttAdp::update()
     auto reconnected = false;
     if (!m_mqtt.connected())
     {
-        reconnected = m_mqtt.connect(m_deviceId.c_str(), m_user.c_str(), m_pass.c_str());
+        // boolean connect(const char* id, const char* user, const char* pass, const char*
+        // willTopic, uint8_t willQos, boolean willRetain, const char* willMessage);
+        reconnected = m_mqtt.connect(m_deviceId.c_str(), m_user.c_str(), m_pass.c_str(),
+                                     m_lastWillTopic.c_str(), 1, true, m_lastWillMsg.c_str());
     }
     m_mqtt.loop();
 

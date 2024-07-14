@@ -15,14 +15,19 @@ public:
                const std::string &srv,
                uint16_t port,
                const std::string &user,
-               const std::string &pass)
+               const std::string &pass,
+               const std::string &lastWillTopic,
+               const std::string &lastWillMsg)
     {
         mock("MqttDeviceMock")
             .actualCall("start")
             .withParameter("deviceId", deviceId.c_str())
+            .withParameter("srv", srv.c_str())
             .withParameter("port", port)
             .withParameter("user", user.c_str())
-            .withParameter("pass", pass.c_str());
+            .withParameter("pass", pass.c_str())
+            .withParameter("lastWillTopic", lastWillTopic.c_str())
+            .withParameter("lastWillMsg", lastWillMsg.c_str());
     }
 
     bool update()

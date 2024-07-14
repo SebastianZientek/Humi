@@ -15,7 +15,9 @@ public:
                const std::string &srv,
                uint16_t port,
                const std::string &user,
-               const std::string &pass);
+               const std::string &pass,
+               const std::string &lastWillTopic,
+               const std::string &lastWillMsg);
     bool update();
     bool isConnected();
     void setRecvCallback(const RecvClbk &clbk);
@@ -23,12 +25,14 @@ public:
     void subscribeTopic(const std::string &topic);
 
 private:
-    constexpr static auto mqttBufferSize = 1200;
+    constexpr static auto mqttBufferSize = 1250;
 
     std::string m_deviceId{};
     std::string m_srv{};
     std::string m_user{};
     std::string m_pass{};
+    std::string m_lastWillTopic{};
+    std::string m_lastWillMsg{};
 
     bool m_enabled{false};
     RecvClbk m_recvClbk{};

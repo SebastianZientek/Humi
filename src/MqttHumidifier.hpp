@@ -6,6 +6,8 @@
 
 #include "CMqttDevice.hpp"
 #include "Logger.hpp"
+#undef B1
+#include <fmt/core.h>
 
 template <CMqttDevice MqttDevice>
 class MqttHumidifier
@@ -15,24 +17,40 @@ public:
 
     MqttHumidifier(std::shared_ptr<MqttDevice> mqttDevice,
                    const std::string &name,
-                   const std::string &deviceId)
+                   const std::string &deviceId,
+                   const std::string &mqttServer,
+                   uint16_t mqttPort,
+                   const std::string &mqttUsername,
+                   const std::string &mqttPassword)
         : m_mqttDevice(mqttDevice)
         , m_name(name)
-        , m_chipId(deviceId)
-        , m_baseUri("humidifier/humi_" + m_chipId)
-        , MQTT_AVAILABILITY(m_baseUri + "/status")
-        , MQTT_STATE(m_baseUri + "/state")
-        , MQTT_COMMAND(m_baseUri + "/command")
-        , MQTT_AUTOCONF_HUMIDITY_SENSOR("homeassistant/sensor/" + m_baseUri + "_humidity/config")
-        , MQTT_AUTOCONF_WIFI_SENSOR("homeassistant/sensor/" + m_baseUri + "_wifi/config")
-        , MQTT_AUTOCONF_WATER_TANK_SENSOR("homeassistant/sensor/" + m_baseUri
-                                          + "_water_tank/config")
-        , MQTT_AUTOCONF_LIGHT_SWITCH("homeassistant/switch/" + m_baseUri + "_light/config")
-        , MQTT_AUTOCONF_AUTOMODE_SWITCH("homeassistant/switch/" + m_baseUri + "_auto_mode/config")
-        , MQTT_AUTOCONF_NIGHTMODE_SWITCH("homeassistant/switch/" + m_baseUri + "_night_mode/config")
-        , MQTT_AUTOCONF_HUMIDIFIER("homeassistant/humidifier/" + m_baseUri + "_humidifier/config")
-
+        , m_deviceId(deviceId)
+        , m_mqttServer(mqttServer)
+        , m_mqttPort(mqttPort)
+        , m_mqttUsername(mqttUsername)
+        , m_mqttPassword(mqttPassword)
     {
+        TOPIC_COMMON = fmt::format("humi/{}", deviceId);
+        TOPIC_COMMAND = fmt::format("{}/humidifier/set", TOPIC_COMMON);
+
+        TOPIC_AUTOCONFIG_HUMIDIFIER
+            = fmt::format("homeassistant/humidifier/{}/humidifier/config", deviceId);
+        TOPIC_AUTOCONFIG_WATER_TANK
+            = fmt::format("homeassistant/sensor/{}/waterTank/config", deviceId);
+        TOPIC_AUTOCONFIG_HUMIDITY
+            = fmt::format("homeassistant/sensor/{}/humidity/config", deviceId);
+        TOPIC_LIGHT_AUTOCONFIG = fmt::format("homeassistant/switch/{}/light/config", deviceId);
+        TOPIC_AUTOMODE_AUTOCONFIG
+            = fmt::format("homeassistant/switch/{}/auto_mode/config", deviceId);
+        TOPIC_NIGHTMODE_AUTOCONFIG
+            = fmt::format("homeassistant/switch/{}/night_mode/config", deviceId);
+        TOPIC_WIFI_AUTOCONFIG = fmt::format("homeassistant/sensor/{}/wifi/config", deviceId);
+    }
+
+    void start()
+    {
+        m_mqttDevice->start(m_deviceId, m_mqttServer, m_mqttPort, m_mqttUsername, m_mqttPassword,
+                            fmt::format("{}/availability", TOPIC_COMMON), "offline");
     }
 
     void update()
@@ -40,45 +58,50 @@ public:
         auto reconnected = m_mqttDevice->update();
         if (reconnected)
         {
-            m_mqttDevice->subscribeTopic(MQTT_COMMAND);
-            publishAutoConfig();
-            m_mqttDevice->sendData(MQTT_AVAILABILITY, "online");
+            m_mqttDevice->subscribeTopic(TOPIC_COMMAND);
+            sendAutoconfig();
+            prepareAfterReconnection();
         }
     }
 
     void setRecvCallback(const RecvClbk &clbk)
     {
         m_mqttDevice->setRecvCallback(
-            [clbk](const std::string &topic, const std::string &data)
+            [this, clbk](const std::string &topic, const std::string &data)
             {
-                Logger::debug("MQTT READ: {}, value {}", topic, data);
+                Logger::debug("Recv: {} -> {}", topic, data);
                 auto message = nlohmann::json::parse(data, nullptr, false);
 
                 if (message.is_discarded())
                 {
                     Logger::error("Can't parse mqtt data, {}", data);
                 }
-                else if (message.contains("humiditySetpoint"))
+                else if (message.contains("power"))
                 {
-                    uint8_t value = message["humiditySetpoint"];
+                    std::string state = message["power"];
+                    clbk("power", state == "on" ? 1 : 0);
+                }
+                else if (message.contains("humidification_level"))
+                {
+                    uint8_t value = message["humidification_level"];
                     clbk("humidification_level", (value - 35) / 5);
                 }
-                else if (message.contains("state"))
+                else if (message.contains("humidification_power"))
                 {
-                    std::string state = message["state"];
-                    uint8_t value = state == "on" ? 1 : 0;
-                    clbk("power", value);
-                }
-                else if (message.contains("mode"))
-                {
-                    std::string mode = message["mode"];
+                    std::string mode = message["humidification_power"];
+                    static std::map<std::string, int> modeToValue{
+                        {"Low", 0}, {"Normal", 1}, {"High", 2}, {"Turbo", 3}};
+                    uint8_t value = modeToValue[mode];
 
-                    uint8_t value{};
-                    auto [ptr, ec] = std::from_chars(mode.data(), mode.data() + mode.size(), value);
-                    if (ec == std::errc() && value >= 1 && value <= 4)
+                    if (value >= 0 && value < 4)
                     {
-                        clbk("humidification_power", value - 1);
+                        clbk("humidification_power", value);
                     }
+                }
+                else if (message.contains("light"))
+                {
+                    uint8_t value = message["light"];
+                    clbk("light", value != 0 ? 3 : 0);
                 }
                 else if (message.contains("auto_mode"))
                 {
@@ -90,20 +113,15 @@ public:
                     uint8_t value = message["night_mode"];
                     clbk("night_mode", value);
                 }
-                else if (message.contains("light"))
-                {
-                    std::string state = message["light"];
-                    uint8_t value = state == "on" ? 3 : 0;
-                    clbk("light", value);
-                }
             });
     }
 
-    void publishMqtt(const std::string &type, uint8_t value)
+    void publish(const std::string &type, uint8_t value)
     {
         if (type == "power")
         {
-            publishActive(value == 1);
+            m_mqttDevice->sendData(fmt::format("{}/power/state", TOPIC_COMMON),
+                                   value == 1 ? "on" : "off");
         }
         else if (type == "humidification_level" && value > 0)
         {
@@ -111,313 +129,229 @@ public:
             constexpr auto minHumidification = 40;
 
             // To keep value between 40% and 75% (value = 1 is 40%)
-            publishTargetHumidity((value - 1) * humidificationStep + minHumidification);
-        }
-        else if (type == "humidity_lvl")
-        {
-            publishSensorHumidity(value);
+            auto targetHumidity = (value - 1) * humidificationStep + minHumidification;
+
+            m_mqttDevice->sendData(fmt::format("{}/humidification_level", TOPIC_COMMON),
+                                   std::to_string(targetHumidity));
         }
         else if (type == "humidification_power")
         {
-            publishMode(std::to_string(value + 1));
+            static std::array<std::string, 4> mode{"Low", "Normal", "High", "Turbo"};
+
+            if (value >= 0 && value < 4)
+            {
+                m_mqttDevice->sendData(fmt::format("{}/humidification_power/state", TOPIC_COMMON),
+                                       mode[value]);
+            }
         }
-        else if (type == "night_mode")
+        else if (type == "humidity_lvl")
         {
-            publishNightMode(value);
-        }
-        else if (type == "auto_mode")
-        {
-            publishAutoMode(value);
-        }
-        else if (type == "light")
-        {
-            publishLight(value != 0);
+            m_mqttDevice->sendData(fmt::format("{}/humidity/state", TOPIC_COMMON),
+                                   std::to_string(value));
         }
         else if (type == "water_lvl")
         {
-            publishWaterTank(value == 1);
+            m_mqttDevice->sendData(fmt::format("{}/waterTank/state", TOPIC_COMMON),
+                                   value == 1 ? "full" : "empty");
+        }
+        else if (type == "light")
+        {
+            m_mqttDevice->sendData(fmt::format("{}/light/state", TOPIC_COMMON),
+                                   std::to_string(value != 0 ? 1 : 0));
+        }
+        else if (type == "auto_mode")
+        {
+            m_mqttDevice->sendData(fmt::format("{}/auto_mode/state", TOPIC_COMMON),
+                                   std::to_string(value));
+        }
+        else if (type == "night_mode")
+        {
+            m_mqttDevice->sendData(fmt::format("{}/night_mode/state", TOPIC_COMMON),
+                                   std::to_string(value));
         }
     }
 
-    void publishActive(bool active)
+    void publishWifi(const std::string &ssid, const std::string &ip, int8_t rssi)
     {
-        nlohmann::json state;
-        state["state"] = active ? "on" : "off";
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishState(const std::string &ssid,
-                      const std::string &ip,
-                      int8_t rssi,
-                      bool waterTankFull,
-                      bool isPowerOn)
-    {
-        nlohmann::json state;
-        nlohmann::json wifi;
-
-        wifi["ssid"] = ssid;
-        wifi["ip"] = ip;
-        wifi["rssi"] = rssi;
-
-        state["wifi"] = wifi;
-        state["waterTank"] = waterTankFull ? "full" : "empty";
-        state["state"] = isPowerOn ? "on" : "off";
-
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+        nlohmann::json wifi = {{"ssid", ssid}, {"ip", ip}, {"rssi", rssi}};
+        m_mqttDevice->sendData(fmt::format("{}/wifi/state", TOPIC_COMMON), wifi.dump());
     }
 
 private:
     std::shared_ptr<MqttDevice> m_mqttDevice{};
-    RecvClbk m_clbk;
 
     std::string m_name;
-    std::string m_chipId;
-    std::string m_baseUri;
+    std::string m_deviceId;
 
-    std::string MQTT_AVAILABILITY;
-    std::string MQTT_STATE;
-    std::string MQTT_COMMAND;
-    std::string MQTT_AUTOCONF_HUMIDITY_SENSOR;
-    std::string MQTT_AUTOCONF_WIFI_SENSOR;
-    std::string MQTT_AUTOCONF_WATER_TANK_SENSOR;
-    std::string MQTT_AUTOCONF_LIGHT_SWITCH;
-    std::string MQTT_AUTOCONF_AUTOMODE_SWITCH;
-    std::string MQTT_AUTOCONF_NIGHTMODE_SWITCH;
-    std::string MQTT_AUTOCONF_HUMIDIFIER;
+    std::string m_mqttServer;
+    uint16_t m_mqttPort;
+    std::string m_mqttUsername;
+    std::string m_mqttPassword;
+    std::string TOPIC_COMMON;
+    std::string TOPIC_COMMAND;
+    std::string TOPIC_AUTOCONFIG_HUMIDIFIER;
+    std::string TOPIC_AUTOCONFIG_WATER_TANK;
+    std::string TOPIC_AUTOCONFIG_HUMIDITY;
+    std::string TOPIC_LIGHT_AUTOCONFIG;
+    std::string TOPIC_AUTOMODE_AUTOCONFIG;
+    std::string TOPIC_NIGHTMODE_AUTOCONFIG;
+    std::string TOPIC_WIFI_AUTOCONFIG;
 
-    void publishAutoConfig()
+    void prepareAfterReconnection()
     {
-        nlohmann::json device;
-        std::string identifier = m_name;
-
-        device["identifiers"] = {identifier};
-        device["manufacturer"] = "Custom";
-        device["model"] = "Humi Custom Wifi Module";
-        device["name"] = identifier;
-        device["sw_version"] = __DATE__;
-
-        sendAutoConfHumidity(device, identifier);
-        sendAutoConfWifiSignal(device, identifier);
-        sendAutoConfWaterTank(device, identifier);
-        sendAutoConfigLight(device, identifier);
-        sendAutoConfigAutoMode(device, identifier);
-        sendAutoConfigNightMode(device, identifier);
-        sendAutoConfigHumidifyingPower(device, identifier);
+        m_mqttDevice->sendData(fmt::format("{}/availability", TOPIC_COMMON), "online");
+        m_mqttDevice->sendData(fmt::format("{}/power/state", TOPIC_COMMON), "on");
+        m_mqttDevice->sendData(fmt::format("{}/humidification_level", TOPIC_COMMON), "57");
+        m_mqttDevice->sendData(fmt::format("{}/humidity/state", TOPIC_COMMON), "51");
+        m_mqttDevice->sendData(fmt::format("{}/waterTank/state", TOPIC_COMMON), "full");
+        m_mqttDevice->sendData(fmt::format("{}/light/state", TOPIC_COMMON), "0");
+        m_mqttDevice->sendData(fmt::format("{}/auto_mode/state", TOPIC_COMMON), "0");
+        m_mqttDevice->sendData(fmt::format("{}/night_mode/state", TOPIC_COMMON), "0");
     }
 
-    void sendAutoConfHumidity(const nlohmann::json &device, const std::string &identifier)
+    void sendAutoconfig()
     {
-        nlohmann::json autoconf;
+        nlohmann::json device = {{"identifiers", {m_name}},
+                                 {"manufacturer", "Custom"},
+                                 {"model", "Humi Custom Wifi Module"},
+                                 {"name", m_name}};
 
-        autoconf["device"] = device;
-        autoconf["availability_topic"] = MQTT_AVAILABILITY;
-        autoconf["state_topic"] = MQTT_STATE;
-        autoconf["name"] = "Humidity";
-        autoconf["device_class"] = "humidity";
-        autoconf["unit_of_measurement"] = "%";
-        autoconf["value_template"] = "{{value_json.humidity}}";
-        autoconf["unique_id"] = identifier + "_humidity";
-
-        m_mqttDevice->sendData(MQTT_AUTOCONF_HUMIDITY_SENSOR, autoconf.dump());
+        sendAutoConfigHumidifier(device);
+        sendAutoConfHumidity(device);
+        sendAutoConfWaterTank(device);
+        sendAutoConfWifi(device);
+        sendAutoConfigLight(device);
+        sendAutoConfigAutoMode(device);
+        sendAutoConfigNightMode(device);
     }
 
-    void sendAutoConfWifiSignal(const nlohmann::json &device, const std::string &identifier)
+    void sendAutoConfigHumidifier(const nlohmann::json &device)
     {
-        nlohmann::json autoconf;
+        nlohmann::json humidifierAutoConfig = {
+            {"device", device},
+            {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+            {"name", "Humidifier"},
+            {"unique_id", fmt::format("humidifier_{}", m_deviceId)},
+            {"device_class", "humidifier"},
+            {"max_humidity", 75},
+            {"min_humidity", 40},
+            {"payload_off", "off"},
+            {"payload_on", "on"},
+            {"state_topic", fmt::format("{}/power/state", TOPIC_COMMON)},
+            {"command_topic", TOPIC_COMMAND},
+            {"command_template", R"({"power": "{{value}}"})"},
+            {"modes", {"Low", "Normal", "High", "Turbo"}},
+            {"target_humidity_state_topic", fmt::format("{}/humidification_level", TOPIC_COMMON)},
+            {"target_humidity_state_template", "{{value | int}}"},
+            {"target_humidity_command_topic", TOPIC_COMMAND},
+            {"target_humidity_command_template", R"({"humidification_level": {{value}}})"},
+            {"mode_state_topic", fmt::format("{}/humidification_power/state", TOPIC_COMMON)},
+            {"mode_state_template", "{{value}}"},
+            {"mode_command_topic", TOPIC_COMMAND},
+            {"mode_command_template", R"({"humidification_power": "{{value}}"})"}};
 
-        autoconf["device"] = device;
-        autoconf["availability_topic"] = MQTT_AVAILABILITY;
-        autoconf["state_topic"] = MQTT_STATE;
-        autoconf["name"] = "WiFi";
-        autoconf["value_template"] = "{{value_json.wifi.rssi}}";
-        autoconf["unique_id"] = identifier + "_wifi";
-        autoconf["unit_of_measurement"] = "dBm";
-        autoconf["json_attributes_topic"] = MQTT_STATE;
-        autoconf["json_attributes_template"]
-            = "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": "
-              "\"{{value_json.wifi.ip}}\"}";
-        autoconf["icon"] = "mdi:wifi";
-        autoconf["entity_category"] = "diagnostic";
-
-        m_mqttDevice->sendData(MQTT_AUTOCONF_WIFI_SENSOR, autoconf.dump());
+        m_mqttDevice->sendData(TOPIC_AUTOCONFIG_HUMIDIFIER, humidifierAutoConfig.dump());
     }
 
-    void sendAutoConfWaterTank(const nlohmann::json &device, const std::string &identifier)
+    void sendAutoConfHumidity(const nlohmann::json &device)
     {
-        nlohmann::json autoconf;
+        nlohmann::json humidityAutoconfig
+            = {{"device", device},
+               {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+               {"state_topic", fmt::format("{}/humidity/state", TOPIC_COMMON)},
+               {"name", "Humidity"},
+               {"device_class", "humidity"},
+               {"unit_of_measurement", "%"},
+               {"value_template", "{{value | int}}"},
+               {"unique_id", fmt::format("humidity_{}", m_deviceId)}};
 
-        autoconf["device"] = device;
-        autoconf["availability_topic"] = MQTT_AVAILABILITY;
-        autoconf["state_topic"] = MQTT_STATE;
-        autoconf["name"] = "Water Tank";
-        autoconf["value_template"] = "{{value_json.waterTank}}";
-        autoconf["unique_id"] = identifier + "_water_tank";
-        autoconf["icon"] = "mdi:cup-water";
-        autoconf["entity_category"] = "diagnostic";
-
-        m_mqttDevice->sendData(MQTT_AUTOCONF_WATER_TANK_SENSOR, autoconf.dump());
+        m_mqttDevice->sendData(TOPIC_AUTOCONFIG_HUMIDITY, humidityAutoconfig.dump());
     }
 
-    void sendAutoConfigLight(const nlohmann::json &device, const std::string &identifier)
+    void sendAutoConfWaterTank(const nlohmann::json &device)
     {
-        nlohmann::json autoconf;
+        nlohmann::json waterTankAutoConfig
+            = {{"device", device},
+               {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+               {"state_topic", fmt::format("{}/waterTank/state", TOPIC_COMMON)},
+               {"name", "Water Tank"},
+               {"unique_id", fmt::format("waterTank_{}", m_deviceId)},
+               {"icon", "mdi:cup-water"}};
 
-        autoconf["device"] = device;
-        autoconf["mode_state_topic"] = MQTT_STATE;
-        autoconf["mode_command_topic"] = MQTT_COMMAND;
-        autoconf["mode_state_template"] = "{{value_json.mode}}";
-        autoconf["mode_command_template"] = R"({"mode": "{{value}}"})";
-        autoconf["availability_topic"] = MQTT_AVAILABILITY;
-        autoconf["command_topic"] = MQTT_COMMAND;
-        autoconf["state_topic"] = MQTT_STATE;
-        autoconf["name"] = "Light";
-        autoconf["value_template"] = "{{value_json.light}}";
-        autoconf["unique_id"] = identifier + "_light";
-        autoconf["payload_on"] = R"({"light": "on"})";
-        autoconf["payload_off"] = R"({"light": "off"})";
-        autoconf["state_on"] = "on";
-        autoconf["state_off"] = "off";
-        autoconf["icon"] = "mdi:lightbulb";
-        autoconf["entity_category"] = "config";
-
-        m_mqttDevice->sendData(MQTT_AUTOCONF_LIGHT_SWITCH, autoconf.dump());
+        m_mqttDevice->sendData(TOPIC_AUTOCONFIG_WATER_TANK, waterTankAutoConfig.dump());
     }
 
-    void sendAutoConfigAutoMode(const nlohmann::json &device, const std::string &identifier)
+    void sendAutoConfWifi(const nlohmann::json &device)
     {
-        nlohmann::json autoconf;
+        nlohmann::json wifiAutoconfig
+            = {{"device", device},
+               {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+               {"state_topic", fmt::format("{}/wifi/state", TOPIC_COMMON)},
+               {"name", "WiFi"},
+               {"value_template", "{{value_json.rssi}}"},
+               {"unique_id", fmt::format("wifi_{}", m_deviceId)},
+               {"unit_of_measurement", "dBm"},
+               {"json_attributes_topic", fmt::format("{}/wifi/attr", TOPIC_COMMON)},
+               {"json_attributes_template",
+                R"({"ssid": "{{value_json.ssid}}", "ip": "{{value_json.ip}}"})"},
+               {"icon", "mdi:wifi"}};
 
-        autoconf["device"] = device;
-        autoconf["mode_state_topic"] = MQTT_STATE;
-        autoconf["mode_command_topic"] = MQTT_COMMAND;
-        autoconf["mode_state_template"] = "{{value_json.mode}}";
-        autoconf["mode_command_template"] = R"({"mode": "{{value}}"})";
-        autoconf["availability_topic"] = MQTT_AVAILABILITY;
-        autoconf["command_topic"] = MQTT_COMMAND;
-        autoconf["state_topic"] = MQTT_STATE;
-        autoconf["name"] = "Auto";
-        autoconf["value_template"] = "{{value_json.auto_mode}}";
-        autoconf["unique_id"] = identifier + "_auto_mode";
-        autoconf["payload_on"] = R"({"auto_mode": 1})";
-        autoconf["payload_off"] = R"({"auto_mode": 0})";
-        autoconf["state_on"] = 1;
-        autoconf["state_off"] = 0;
-        autoconf["icon"] = "mdi:auto-mode";
-        autoconf["entity_category"] = "config";
-
-        m_mqttDevice->sendData(MQTT_AUTOCONF_AUTOMODE_SWITCH, autoconf.dump());
+        m_mqttDevice->sendData(TOPIC_WIFI_AUTOCONFIG, wifiAutoconfig.dump());
     }
 
-    void sendAutoConfigNightMode(const nlohmann::json &device, const std::string &identifier)
+    void sendAutoConfigLight(const nlohmann::json &device)
     {
-        nlohmann::json autoconf;
+        nlohmann::json lightAutoconfig
+            = {{"device", device},
+               {"device_class", "switch"},
+               {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+               {"state_topic", fmt::format("{}/light/state", TOPIC_COMMON)},
+               {"command_topic", TOPIC_COMMAND},
+               {"name", "Light"},
+               {"unique_id", fmt::format("light_{}", m_deviceId)},
+               {"state_off", 0},
+               {"state_on", 1},
+               {"payload_off", R"({"light": 0})"},
+               {"payload_on", R"({"light": 1})"},
+               {"icon", "mdi:lightbulb"},
+               {"entity_category", "config"}};
 
-        autoconf["device"] = device;
-        autoconf["mode_state_topic"] = MQTT_STATE;
-        autoconf["mode_command_topic"] = MQTT_COMMAND;
-        autoconf["mode_state_template"] = "{{value_json.mode}}";
-        autoconf["mode_command_template"] = R"({"mode": "{{value}}"})";
-        autoconf["availability_topic"] = MQTT_AVAILABILITY;
-        autoconf["command_topic"] = MQTT_COMMAND;
-        autoconf["state_topic"] = MQTT_STATE;
-        autoconf["name"] = "Night mode";
-        autoconf["value_template"] = "{{value_json.night_mode}}";
-        autoconf["unique_id"] = identifier + "_night_mode";
-        autoconf["payload_on"] = R"({"night_mode": 1})";
-        autoconf["payload_off"] = R"({"night_mode": 0})";
-        autoconf["state_on"] = 1;
-        autoconf["state_off"] = 0;
-        autoconf["icon"] = "mdi:weather-night";
-        autoconf["entity_category"] = "config";
-
-        m_mqttDevice->sendData(MQTT_AUTOCONF_NIGHTMODE_SWITCH, autoconf.dump());
+        m_mqttDevice->sendData(TOPIC_LIGHT_AUTOCONFIG, lightAutoconfig.dump());
     }
 
-    void sendAutoConfigHumidifyingPower(const nlohmann::json &device, const std::string &identifier)
+    void sendAutoConfigAutoMode(const nlohmann::json &device)
     {
-        nlohmann::json autoconf;
-
-        autoconf["device"] = device;
-        autoconf["availability_topic"] = MQTT_AVAILABILITY;
-        autoconf["name"] = "Humidifier";
-        autoconf["unique_id"] = identifier + "_humidifier";
-        autoconf["device_class"] = "humidifier";
-
-        autoconf["max_humidity"] = 75;
-        autoconf["min_humidity"] = 40;
-
-        autoconf["state_topic"] = MQTT_STATE;
-        autoconf["state_value_template"] = R"({"state": "{{value_json.state}}"})";
-        autoconf["payload_on"] = R"({"state": "on"})";
-        autoconf["payload_off"] = R"({"state": "off"})";
-        autoconf["command_topic"] = MQTT_COMMAND;
-        autoconf["state_value_template"] = R"({"state": "{{value_json.state}}"})";
-
-        nlohmann::json modes;
-        modes.push_back("1");
-        modes.push_back("2");
-        modes.push_back("3");
-        modes.push_back("4");
-
-        autoconf["modes"] = modes;
-        autoconf["target_humidity_state_topic"] = MQTT_STATE;
-        autoconf["target_humidity_command_topic"] = MQTT_COMMAND;
-        autoconf["target_humidity_state_template"] = "{{value_json.humiditySetpoint | int}}";
-        autoconf["target_humidity_command_template"] = "{\"humiditySetpoint\":{{value | int}}}";
-        autoconf["mode_state_topic"] = MQTT_STATE;
-        autoconf["mode_command_topic"] = MQTT_COMMAND;
-        autoconf["mode_state_template"] = "{{value_json.mode}}";
-        autoconf["mode_command_template"] = R"({"mode": "{{value}}"})";
-
-        m_mqttDevice->sendData(MQTT_AUTOCONF_HUMIDIFIER, autoconf.dump());
+        nlohmann::json autoModeAutoconfig
+            = {{"device", device},
+               {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+               {"command_topic", TOPIC_COMMAND},
+               {"state_topic", fmt::format("{}/auto_mode/state", TOPIC_COMMON)},
+               {"name", "Auto"},
+               {"unique_id", fmt::format("auto_mode_{}", m_deviceId)},
+               {"state_off", 0},
+               {"state_on", 1},
+               {"payload_off", R"({"auto_mode": 0})"},
+               {"payload_on", R"({"auto_mode": 1})"},
+               {"icon", "mdi:auto-mode"},
+               {"entity_category", "config"}};
+        m_mqttDevice->sendData(TOPIC_AUTOMODE_AUTOCONFIG, autoModeAutoconfig.dump());
     }
 
-    void publishTargetHumidity(int targetHumidity)
+    void sendAutoConfigNightMode(const nlohmann::json &device)
     {
-        nlohmann::json state;
-        state["humiditySetpoint"] = targetHumidity;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishSensorHumidity(int humidity)
-    {
-        nlohmann::json state;
-        state["humidity"] = humidity;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishMode(std::string mode)
-    {
-        nlohmann::json state;
-        state["mode"] = mode;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishAutoMode(uint8_t enable)
-    {
-        nlohmann::json state;
-        state["auto_mode"] = enable;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishNightMode(uint8_t enable)
-    {
-        nlohmann::json state;
-        state["night_mode"] = enable;
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishLight(bool enable)
-    {
-        nlohmann::json state;
-        state["light"] = enable ? "on" : "off";
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
-    }
-
-    void publishWaterTank(bool full)
-    {
-        nlohmann::json state;
-        state["waterTank"] = full ? "full" : "empty";
-        m_mqttDevice->sendData(MQTT_STATE, state.dump());
+        nlohmann::json nightModeAutoconfig
+            = {{"device", device},
+               {"availability_topic", fmt::format("{}/availability", TOPIC_COMMON)},
+               {"command_topic", TOPIC_COMMAND},
+               {"state_topic", fmt::format("{}/night_mode/state", TOPIC_COMMON)},
+               {"name", "Night mode"},
+               {"unique_id", fmt::format("night_mode_{}", m_deviceId)},
+               {"state_off", 0},
+               {"state_on", 1},
+               {"payload_off", R"({"night_mode": 0})"},
+               {"payload_on", R"({"night_mode": 1})"},
+               {"icon", "mdi:weather-night"},
+               {"entity_category", "config"}};
+        m_mqttDevice->sendData(TOPIC_NIGHTMODE_AUTOCONFIG, nightModeAutoconfig.dump());
     }
 };
